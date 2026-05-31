@@ -6,6 +6,7 @@ import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import routes.choristRoutes
+import routes.formationRoutes
 
 fun Application.module() {
     install(ContentNegotiation) {
@@ -28,5 +29,6 @@ fun Application.module() {
             call.respondText("OK")
         }
         choristRoutes()
+        formationRoutes()
     }
 }
