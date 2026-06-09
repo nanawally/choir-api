@@ -7,6 +7,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import routes.choristRoutes
 import routes.formationRoutes
+import routes.voiceGroupRoutes
 
 fun Application.module() {
     install(ContentNegotiation) {
@@ -30,5 +31,6 @@ fun Application.module() {
         }
         choristRoutes()
         formationRoutes()
+        voiceGroupRoutes()
     }
 }
