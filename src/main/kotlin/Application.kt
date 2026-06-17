@@ -6,6 +6,7 @@ import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import routes.choristRoutes
+import routes.concertRoutes
 import routes.formationRoutes
 import routes.voiceGroupRoutes
 
@@ -30,6 +31,7 @@ fun Application.module() {
             call.respondText("OK")
         }
         choristRoutes()
+        concertRoutes()
         formationRoutes()
         voiceGroupRoutes()
     }

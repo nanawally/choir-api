@@ -1,6 +1,7 @@
 package service
 
 import model.Chorists
+import model.HiddenChorists
 import model.Placements
 import model.VoiceAssignments
 import org.jetbrains.exposed.sql.*
@@ -32,6 +33,7 @@ object ChoristService {
     }
 
     fun delete(id: UUID): Boolean = transaction {
+        HiddenChorists.deleteWhere { choristId eq id }
         Placements.deleteWhere { choristId eq id }
         VoiceAssignments.deleteWhere { choristId eq id }
         Chorists.deleteWhere { Chorists.id eq id } > 0
