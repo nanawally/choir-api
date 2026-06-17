@@ -1,6 +1,8 @@
 package service
 
 import model.Chorists
+import model.Placements
+import model.VoiceAssignments
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -30,6 +32,8 @@ object ChoristService {
     }
 
     fun delete(id: UUID): Boolean = transaction {
+        Placements.deleteWhere { choristId eq id }
+        VoiceAssignments.deleteWhere { choristId eq id }
         Chorists.deleteWhere { Chorists.id eq id } > 0
     }
 }
