@@ -27,6 +27,7 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.2")
     implementation("io.ktor:ktor-server-cors:3.4.2")
     implementation("io.ktor:ktor-server-config-yaml:3.4.2")
+    implementation("com.charleskorn.kaml:kaml:0.77.0")
 
     // Database
     implementation("org.jetbrains.exposed:exposed-core:0.61.0")
