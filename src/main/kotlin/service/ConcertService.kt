@@ -1,9 +1,12 @@
 package service
 
+import model.ConcertChorists
 import model.Concerts
 import model.Formations
 import model.HiddenChorists
 import model.Placements
+import model.SongFormations
+import model.Songs
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -33,16 +36,26 @@ object ConcertService {
     }
 
     fun delete(id: UUID): Boolean = transaction {
-        val formationIds = Formations.selectAll()
+        val songIds = Songs.selectAll() // find every song belonging to this concert
+            .where { Songs.concertId eq id }
+            .map { it[Songs.id] }
+
+        songIds.forEach { sId -> // delete rows that depend on songIds
+            HiddenChorists.deleteWhere { HiddenChorists.songId eq sId }
+            SongFormations.deleteWhere { SongFormations.songId eq sId }
+        }
+        Songs.deleteWhere { Songs.concertId eq id } // delete songs in the concert
+
+        val formationIds = Formations.selectAll() // find every formation belonging to this concert
             .where { Formations.concertId eq id }
             .map { it[Formations.id] }
 
-        formationIds.forEach { fId ->
-            HiddenChorists.deleteWhere { formationId eq fId }
+        formationIds.forEach { fId -> // delete all Placement rows whose formationId matches this formation
             Placements.deleteWhere { formationId eq fId }
         }
-        Formations.deleteWhere { concertId eq id }
-        Concerts.deleteWhere { Concerts.id eq id } > 0
+        Formations.deleteWhere { concertId eq id } // delete all formations whose concertId matches this concert
+        ConcertChorists.deleteWhere { concertId eq id } // delete everyone in the roster for this concert
+        Concerts.deleteWhere { Concerts.id eq id } > 0 // > 0 turns delete count into a boolean, returns true if a concert was deleted
     }
 
     fun duplicate(id: UUID, newName: String): ConcertDTO? = transaction {
@@ -56,7 +69,6 @@ object ConcertService {
 
         val formations = Formations.selectAll()
             .where { Formations.concertId eq id }
-            .orderBy(Formations.sortOrder)
             .toList()
 
         formations.forEach { f ->
@@ -64,7 +76,6 @@ object ConcertService {
             val newFormationId = Formations.insert {
                 it[concertId] = newConcertId
                 it[name] = f[Formations.name]
-                it[sortOrder] = f[Formations.sortOrder]
             } get Formations.id
 
             Placements.selectAll()
@@ -77,16 +88,9 @@ object ConcertService {
                         it[gridY] = p[Placements.gridY]
                     }
                 }
-
-            HiddenChorists.selectAll()
-                .where { HiddenChorists.formationId eq oldFormationId }
-                .forEach { h ->
-                    HiddenChorists.insert {
-                        it[formationId] = newFormationId
-                        it[choristId] = h[HiddenChorists.choristId]
-                    }
-                }
         }
+
+        // TODO: also duplicate Songs, SongFormations, HiddenChorists, and ConcertChorists
 
         ConcertDTO(newConcertId, newName)
     }
