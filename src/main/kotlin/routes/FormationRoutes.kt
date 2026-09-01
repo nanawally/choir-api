@@ -13,7 +13,7 @@ import java.util.*
 data class CreateFormationRequest(val name: String)
 
 @Serializable
-data class FormationResponse(val id: String, val name: String, val sortOrder: Int)
+data class FormationResponse(val id: String, val name: String)
 
 @Serializable
 data class PlacementBody(val choristId: String, val gridX: Int, val gridY: Int)
@@ -22,26 +22,19 @@ data class PlacementBody(val choristId: String, val gridX: Int, val gridY: Int)
 data class FormationDetailResponse(
     val id: String,
     val name: String,
-    val sortOrder: Int,
     val placements: List<PlacementBody>,
-    val hiddenChoristIds: List<String>,
 )
-
-@Serializable
-data class HiddenChoristsBody(val choristIds: List<String>)
-
-@Serializable
-data class ReorderBody(val formationIds: List<String>)
 
 @Serializable
 data class CopyToConcertBody(val targetConcertId: String)
 
 fun Route.formationRoutes() {
     route("/concerts/{concertId}/formations") {
+
         get {
             val concertId = UUID.fromString(call.parameters["concertId"])
             val formations = FormationService.listByConcert(concertId).map {
-                FormationResponse(it.id.toString(), it.name, it.sortOrder)
+                FormationResponse(it.id.toString(), it.name)
             }
             call.respond(formations)
         }
@@ -52,16 +45,10 @@ fun Route.formationRoutes() {
             val formation = FormationService.create(concertId, req.name)
             call.respond(
                 HttpStatusCode.Created,
-                FormationResponse(formation.id.toString(), formation.name, formation.sortOrder)
+                FormationResponse(formation.id.toString(), formation.name)
             )
         }
 
-        put("/reorder") {
-            val concertId = UUID.fromString(call.parameters["concertId"])
-            val body = call.receive<ReorderBody>()
-            FormationService.reorder(concertId, body.formationIds.map { UUID.fromString(it) })
-            call.respond(HttpStatusCode.OK)
-        }
     }
 
     route("/formations/{id}") {
@@ -72,11 +59,9 @@ fun Route.formationRoutes() {
                 call.respond(FormationDetailResponse(
                     result.id.toString(),
                     result.name,
-                    result.sortOrder,
                     result.placements.map {
                         PlacementBody(it.choristId.toString(), it.gridX, it.gridY)
                     },
-                    result.hiddenChoristIds.map { it.toString() },
                 ))
             } else {
                 call.respond(HttpStatusCode.NotFound)
@@ -102,20 +87,13 @@ fun Route.formationRoutes() {
             call.respond(HttpStatusCode.OK)
         }
 
-        put("/hidden") {
-            val id = UUID.fromString(call.parameters["id"])
-            val body = call.receive<HiddenChoristsBody>()
-            FormationService.setHiddenChorists(id, body.choristIds.map { UUID.fromString(it) })
-            call.respond(HttpStatusCode.OK)
-        }
-
         post("/duplicate") {
             val id = UUID.fromString(call.parameters["id"])
             val result = FormationService.duplicate(id)
             if (result != null) {
                 call.respond(
                     HttpStatusCode.Created,
-                    FormationResponse(result.id.toString(), result.name, result.sortOrder)
+                    FormationResponse(result.id.toString(), result.name)
                 )
             } else {
                 call.respond(HttpStatusCode.NotFound)
@@ -129,7 +107,7 @@ fun Route.formationRoutes() {
             if (result != null) {
                 call.respond(
                     HttpStatusCode.Created,
-                    FormationResponse(result.id.toString(), result.name, result.sortOrder)
+                    FormationResponse(result.id.toString(), result.name)
                 )
             } else {
                 call.respond(HttpStatusCode.NotFound)

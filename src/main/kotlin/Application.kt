@@ -5,10 +5,7 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import routes.choristRoutes
-import routes.concertRoutes
-import routes.formationRoutes
-import routes.voiceGroupRoutes
+import routes.*
 
 fun Application.module() {
     install(ContentNegotiation) {
@@ -32,7 +29,10 @@ fun Application.module() {
         }
         choristRoutes()
         concertRoutes()
+        concertChoristRoutes()
+        songRoutes()
         formationRoutes()
+        songFormationRoutes()
         voiceGroupRoutes()
     }
 }
