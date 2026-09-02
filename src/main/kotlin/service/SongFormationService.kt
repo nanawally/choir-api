@@ -12,16 +12,16 @@ object SongFormationService {
 
     fun listBySong(songId: UUID): List<UUID> = transaction {
         SongFormations.selectAll()
-            .where { SongFormations.songId eq songId }
+            .where { SongFormations.concertSongId eq songId }
             .orderBy(SongFormations.sortOrder)
             .map { it[SongFormations.formationId] }
     }
 
     fun setBySong(songId: UUID, songFormationId: List<UUID>) = transaction {
-        SongFormations.deleteWhere { SongFormations.songId eq songId }
+        SongFormations.deleteWhere { SongFormations.concertSongId eq songId }
         songFormationId.forEachIndexed { index, fId ->
             SongFormations.insert {
-                it[SongFormations.songId] = songId
+                it[SongFormations.concertSongId] = songId
                 it[SongFormations.formationId] = fId
                 it[SongFormations.sortOrder] = index
             }

@@ -1,6 +1,7 @@
 import io.ktor.server.application.*
 import model.Chorists
 import model.ConcertChorists
+import model.ConcertSongs
 import model.Concerts
 import model.Formations
 import model.HiddenChorists
@@ -28,7 +29,7 @@ fun Application.configureDatabase() {
 
     transaction {
         SchemaUtils.createMissingTablesAndColumns(
-            Chorists, Concerts, ConcertChorists, Formations, HiddenChorists, Placements,
+            Chorists, Concerts, ConcertChorists, ConcertSongs, Formations, HiddenChorists, Placements,
             Songs, SongFormations, VoiceGroups, VoiceParts, VoiceAssignments
         )
     }

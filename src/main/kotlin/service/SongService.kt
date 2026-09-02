@@ -1,5 +1,6 @@
 package service
 
+import model.ConcertSongs
 import model.HiddenChorists
 import model.SongFormations
 import model.Songs
@@ -11,35 +12,21 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import java.util.*
 
-data class SongDTO(val id: UUID, val name: String, val sortOrder: Int, val formationId: UUID?)
+data class SongDTO(val id: UUID, val name: String)
 
 object SongService {
 
-    fun listByConcert(concertId: UUID): List<SongDTO> = transaction {
-
+    fun list(): List<SongDTO> = transaction {
         Songs.selectAll()
-            .where { Songs.concertId eq concertId }
-            .orderBy(Songs.sortOrder)
-            .map {
-                val formationId = SongFormations.selectAll()
-                    .where { SongFormations.songId eq it[Songs.id] }
-                    .firstOrNull()?.get(SongFormations.formationId)
-                SongDTO(it[Songs.id], it[Songs.name], it[Songs.sortOrder], formationId)
-            }
+            .map { SongDTO(it[Songs.id], it[Songs.name]) }
     }
 
-    fun create(concertId: UUID, name: String): SongDTO = transaction {
-        val max = Songs.selectAll()
-            .where { Songs.concertId eq concertId }
-            .maxOfOrNull { it[Songs.sortOrder] } ?: 0
-
+    fun create(name: String): SongDTO = transaction {
         val id = Songs.insert {
-            it[Songs.concertId] = concertId
             it[Songs.name] = name
-            it[Songs.sortOrder] = max + 1
         } get Songs.id
 
-        SongDTO(id, name, max + 1, null)
+        SongDTO(id, name)
     }
 
     fun rename(id: UUID, newName: String): Boolean = transaction {
@@ -49,8 +36,15 @@ object SongService {
     }
 
     fun delete(id: UUID): Boolean = transaction {
-        HiddenChorists.deleteWhere { HiddenChorists.songId eq id }
-        SongFormations.deleteWhere { SongFormations.songId eq id }
+        val songIds = ConcertSongs.selectAll()
+            .where { ConcertSongs.songId eq id }
+            .map { it[ConcertSongs.id] }
+
+        songIds.forEach { sId ->
+            HiddenChorists.deleteWhere { HiddenChorists.concertSongId eq sId }
+            SongFormations.deleteWhere { SongFormations.concertSongId eq sId }
+        }
+        ConcertSongs.deleteWhere { ConcertSongs.songId eq id }
         Songs.deleteWhere { Songs.id eq id } > 0
     }
 }

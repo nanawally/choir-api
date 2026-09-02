@@ -15,26 +15,22 @@ data class CreateSongRequest(val name: String)
 data class RenameSongRequest(val name: String)
 
 @Serializable
-data class SongResponse(val id: String, val name: String, val sortOrder: Int, val formationId: String?)
+data class SongResponse(val id: String, val name: String)
 
 fun Route.songRoutes() {
-    route("/concerts/{concertId}/songs") {
+    route("/songs") {
 
         get {
-            val concertId = UUID.fromString(call.parameters["concertId"])
-            val songs = SongService.listByConcert(concertId).map {
-                SongResponse(it.id.toString(), it.name, it.sortOrder, it.formationId?.toString())
-            }
+            val songs = SongService.list().map { SongResponse(it.id.toString(), it.name) }
             call.respond(songs)
         }
 
         post {
             val req = call.receive<CreateSongRequest>()
-            val concertId = UUID.fromString(call.parameters["concertId"])
-            val song = SongService.create(concertId, req.name)
+            val song = SongService.create(req.name)
             call.respond(
                 HttpStatusCode.Created,
-                SongResponse(song.id.toString(), song.name, song.sortOrder, null)
+                SongResponse(song.id.toString(), song.name)
             )
         }
 

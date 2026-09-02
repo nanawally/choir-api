@@ -1,15 +1,12 @@
 package service
 
-import model.ConcertChorists
-import model.Concerts
-import model.Formations
-import model.HiddenChorists
-import model.Placements
-import model.SongFormations
-import model.Songs
-import org.jetbrains.exposed.sql.*
+import model.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.update
 import java.util.*
 
 data class ConcertDTO(val id: UUID, val name: String)
@@ -36,15 +33,15 @@ object ConcertService {
     }
 
     fun delete(id: UUID): Boolean = transaction {
-        val songIds = Songs.selectAll() // find every song belonging to this concert
-            .where { Songs.concertId eq id }
-            .map { it[Songs.id] }
+        val songIds = ConcertSongs.selectAll() // find every song belonging to this concert
+            .where { ConcertSongs.concertId eq id }
+            .map { it[ConcertSongs.id] }
 
         songIds.forEach { sId -> // delete rows that depend on songIds
-            HiddenChorists.deleteWhere { HiddenChorists.songId eq sId }
-            SongFormations.deleteWhere { SongFormations.songId eq sId }
+            HiddenChorists.deleteWhere { HiddenChorists.concertSongId eq sId }
+            SongFormations.deleteWhere { SongFormations.concertSongId eq sId }
         }
-        Songs.deleteWhere { Songs.concertId eq id } // delete songs in the concert
+        ConcertSongs.deleteWhere { ConcertSongs.concertId eq id } // delete songs in the concert
 
         val formationIds = Formations.selectAll() // find every formation belonging to this concert
             .where { Formations.concertId eq id }

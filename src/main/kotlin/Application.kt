@@ -30,6 +30,7 @@ fun Application.module() {
         choristRoutes()
         concertRoutes()
         concertChoristRoutes()
+        concertSongRoutes()
         songRoutes()
         formationRoutes()
         songFormationRoutes()

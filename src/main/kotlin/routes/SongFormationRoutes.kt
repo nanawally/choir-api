@@ -12,19 +12,19 @@ import java.util.*
 data class SetSongFormationsRequest(val formationIds: List<String>)
 
 fun Route.songFormationRoutes() {
-    route("/songs/{songId}/formations") {
+    route("/concert-songs/{concertSongId}/formations") {
 
         get {
-            val songId = UUID.fromString(call.parameters["songId"])
-            val songFormations = SongFormationService.listBySong(songId).map { it.toString() }
+            val concertSongId = UUID.fromString(call.parameters["concertSongId"])
+            val songFormations = SongFormationService.listBySong(concertSongId).map { it.toString() }
             call.respond(songFormations)
         }
 
         put {
-            val songId = UUID.fromString(call.parameters["songId"])
+            val concertSongId = UUID.fromString(call.parameters["concertSongId"])
             val body = call.receive<SetSongFormationsRequest>()
             SongFormationService.setBySong(
-                songId,
+                concertSongId,
                 body.formationIds.map { UUID.fromString(it) }
             )
             call.respond(HttpStatusCode.OK)

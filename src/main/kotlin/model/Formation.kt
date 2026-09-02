@@ -22,7 +22,7 @@ object Placements : Table("placements") {
 
 object HiddenChorists : Table("hidden_chorists") {
     val id = uuid("id").autoGenerate()
-    val songId = uuid("song_id").references(Songs.id)
+    val concertSongId = uuid("concert_song_id").references(ConcertSongs.id)
     val choristId = uuid("chorist_id").references(Chorists.id)
 
     override val primaryKey = PrimaryKey(id)

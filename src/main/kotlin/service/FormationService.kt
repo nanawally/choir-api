@@ -4,8 +4,10 @@ import model.Formations
 import model.HiddenChorists
 import model.Placements
 import model.SongFormations
-import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.*
 
@@ -70,10 +72,10 @@ object FormationService {
     }
 
     fun setHiddenChorists(songId: UUID, choristIds: List<UUID>): Unit = transaction {
-        HiddenChorists.deleteWhere { HiddenChorists.songId eq songId }
+        HiddenChorists.deleteWhere { HiddenChorists.concertSongId eq songId }
         choristIds.forEach { cId ->
             HiddenChorists.insert {
-                it[HiddenChorists.songId] = songId
+                it[HiddenChorists.concertSongId] = songId
                 it[choristId] = cId
             }
         }
