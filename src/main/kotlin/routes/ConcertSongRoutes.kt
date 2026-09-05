@@ -17,6 +17,9 @@ data class ReorderConcertSongsRequest(val concertSongIds: List<String>)
 @Serializable
 data class ConcertSongResponse(val id: String, val name: String, val sortOrder: Int)
 
+@Serializable
+data class HiddenChoristRequest(val choristIds: List<String>)
+
 fun Route.concertSongRoutes() {
     route("/concerts/{concertId}/songs") {
 
@@ -52,5 +55,18 @@ fun Route.concertSongRoutes() {
                 call.respond(HttpStatusCode.NotFound)
             }
         }
+    }
+
+    route("/concert-songs/{concertSongId}") {
+
+        put("/hidden") {
+            val concertSongId = UUID.fromString(call.parameters["concertSongId"])
+            val req = call.receive<HiddenChoristRequest>()
+            ConcertSongService.setHiddenChorists(concertSongId, req.choristIds.map {
+                UUID.fromString(it)
+            })
+            call.respond(HttpStatusCode.OK)
+        }
+
     }
 }

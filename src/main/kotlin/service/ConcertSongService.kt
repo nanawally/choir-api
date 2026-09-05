@@ -58,4 +58,14 @@ object ConcertSongService {
             ConcertSongs.update({ ConcertSongs.id eq csId }) { it[sortOrder] = index }
         }
     }
+
+    fun setHiddenChorists(songId: UUID, choristIds: List<UUID>): Unit = transaction {
+        HiddenChorists.deleteWhere { HiddenChorists.concertSongId eq songId }
+        choristIds.forEach { cId ->
+            HiddenChorists.insert {
+                it[HiddenChorists.concertSongId] = songId
+                it[choristId] = cId
+            }
+        }
+    }
 }

@@ -71,16 +71,6 @@ object FormationService {
         }
     }
 
-    fun setHiddenChorists(songId: UUID, choristIds: List<UUID>): Unit = transaction {
-        HiddenChorists.deleteWhere { HiddenChorists.concertSongId eq songId }
-        choristIds.forEach { cId ->
-            HiddenChorists.insert {
-                it[HiddenChorists.concertSongId] = songId
-                it[choristId] = cId
-            }
-        }
-    }
-
     fun duplicate(id: UUID): FormationDTO? = transaction {
         val original = Formations.selectAll()
             .where { Formations.id eq id }
