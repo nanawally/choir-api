@@ -59,6 +59,12 @@ fun Route.concertSongRoutes() {
 
     route("/concert-songs/{concertSongId}") {
 
+        get("/hidden") {
+            val concertSongId = UUID.fromString(call.parameters["concertSongId"])
+            val ids = ConcertSongService.getHiddenChorists(concertSongId)
+            call.respond(ids.map { it.toString() })
+        }
+
         put("/hidden") {
             val concertSongId = UUID.fromString(call.parameters["concertSongId"])
             val req = call.receive<HiddenChoristRequest>()

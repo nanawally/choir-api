@@ -59,6 +59,12 @@ object ConcertSongService {
         }
     }
 
+    fun getHiddenChorists(concertSongId: UUID): List<UUID> = transaction {
+        HiddenChorists.selectAll()
+            .where { HiddenChorists.concertSongId eq concertSongId }
+            .map { it[HiddenChorists.choristId] }
+    }
+
     fun setHiddenChorists(songId: UUID, choristIds: List<UUID>): Unit = transaction {
         HiddenChorists.deleteWhere { HiddenChorists.concertSongId eq songId }
         choristIds.forEach { cId ->
