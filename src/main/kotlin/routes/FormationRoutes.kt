@@ -13,16 +13,20 @@ import java.util.*
 data class CreateFormationRequest(val name: String)
 
 @Serializable
-data class FormationResponse(val id: String, val name: String)
+data class FormationResponse(val id: String, val name: String, val rowSizes: String = "[]")
 
 @Serializable
 data class PlacementBody(val choristId: String, val gridX: Int, val gridY: Int)
+
+@Serializable
+data class RowSizesRequest(val rowSizes: String)
 
 @Serializable
 data class FormationDetailResponse(
     val id: String,
     val name: String,
     val placements: List<PlacementBody>,
+    val rowSizes: String = "[]",
 )
 
 @Serializable
@@ -34,7 +38,7 @@ fun Route.formationRoutes() {
         get {
             val concertId = UUID.fromString(call.parameters["concertId"])
             val formations = FormationService.listByConcert(concertId).map {
-                FormationResponse(it.id.toString(), it.name)
+                FormationResponse(it.id.toString(), it.name, it.rowSizes)
             }
             call.respond(formations)
         }
@@ -45,7 +49,7 @@ fun Route.formationRoutes() {
             val formation = FormationService.create(concertId, req.name)
             call.respond(
                 HttpStatusCode.Created,
-                FormationResponse(formation.id.toString(), formation.name)
+                FormationResponse(formation.id.toString(), formation.name, formation.rowSizes)
             )
         }
 
@@ -62,6 +66,7 @@ fun Route.formationRoutes() {
                     result.placements.map {
                         PlacementBody(it.choristId.toString(), it.gridX, it.gridY)
                     },
+                    result.rowSizes,
                 ))
             } else {
                 call.respond(HttpStatusCode.NotFound)
@@ -87,13 +92,20 @@ fun Route.formationRoutes() {
             call.respond(HttpStatusCode.OK)
         }
 
+        put("/row-sizes") {
+            val id = UUID.fromString(call.parameters["id"])
+            val req = call.receive<RowSizesRequest>()
+            FormationService.updateRowSizes(id, req.rowSizes)
+            call.respond(HttpStatusCode.OK)
+        }
+
         post("/duplicate") {
             val id = UUID.fromString(call.parameters["id"])
             val result = FormationService.duplicate(id)
             if (result != null) {
                 call.respond(
                     HttpStatusCode.Created,
-                    FormationResponse(result.id.toString(), result.name)
+                    FormationResponse(result.id.toString(), result.name, result.rowSizes)
                 )
             } else {
                 call.respond(HttpStatusCode.NotFound)
@@ -107,7 +119,7 @@ fun Route.formationRoutes() {
             if (result != null) {
                 call.respond(
                     HttpStatusCode.Created,
-                    FormationResponse(result.id.toString(), result.name)
+                    FormationResponse(result.id.toString(), result.name, result.rowSizes)
                 )
             } else {
                 call.respond(HttpStatusCode.NotFound)

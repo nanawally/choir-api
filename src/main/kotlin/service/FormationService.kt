@@ -1,7 +1,6 @@
 package service
 
 import model.Formations
-import model.HiddenChorists
 import model.Placements
 import model.SongFormations
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -9,14 +8,16 @@ import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.update
 import java.util.*
 
-data class FormationDTO(val id: UUID, val name: String)
+data class FormationDTO(val id: UUID, val name: String, val rowSizes: String)
 data class PlacementDTO(val choristId: UUID, val gridX: Int, val gridY: Int)
 data class FormationWithPlacements(
     val id: UUID,
     val name: String,
     val placements: List<PlacementDTO>,
+    val rowSizes: String,
 )
 
 object FormationService {
@@ -25,7 +26,7 @@ object FormationService {
         Formations.selectAll()
             .where { Formations.concertId eq concertId }
             .orderBy(Formations.name)
-            .map { FormationDTO(it[Formations.id], it[Formations.name]) }
+            .map { FormationDTO(it[Formations.id], it[Formations.name], it[Formations.rowSizes]) }
     }
 
     fun get(id: UUID): FormationWithPlacements? = transaction {
@@ -41,6 +42,7 @@ object FormationService {
             formation[Formations.id],
             formation[Formations.name],
             placements,
+            formation[Formations.rowSizes],
         )
     }
 
@@ -50,7 +52,7 @@ object FormationService {
             it[Formations.name] = name
         } get Formations.id
 
-        FormationDTO(id, name)
+        FormationDTO(id, name, "[]")
     }
 
     fun delete(id: UUID): Boolean = transaction {
@@ -81,6 +83,7 @@ object FormationService {
         val newId = Formations.insert {
             it[Formations.concertId] = concertId
             it[name] = original[Formations.name] + " (copy)"
+            it[rowSizes] = original[Formations.rowSizes]
         } get Formations.id
 
         Placements.selectAll()
@@ -94,7 +97,7 @@ object FormationService {
                 }
             }
 
-        FormationDTO(newId, original[Formations.name] + " (copy)")
+        FormationDTO(newId, original[Formations.name] + " (copy)", original[Formations.rowSizes])
     }
 
     fun copyToConcert(formationId: UUID, targetConcertId: UUID): FormationDTO? = transaction {
@@ -105,6 +108,7 @@ object FormationService {
         val newId = Formations.insert {
             it[concertId] = targetConcertId
             it[name] = original[Formations.name]
+            it[rowSizes] = original[Formations.rowSizes]
         } get Formations.id
 
         Placements.selectAll()
@@ -118,6 +122,12 @@ object FormationService {
                 }
             }
 
-        FormationDTO(newId, original[Formations.name])
+        FormationDTO(newId, original[Formations.name], original[Formations.rowSizes])
+    }
+
+    fun updateRowSizes(formationId: UUID, rowSizes: String): Boolean = transaction {
+        Formations.update ({ Formations.id eq formationId }) {
+            it[Formations.rowSizes] = rowSizes
+        } > 0
     }
 }
