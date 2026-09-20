@@ -56,6 +56,12 @@ object VoiceGroupService {
         VoicePartDTO(id, name, color, shape)
     }
 
+    fun renamePart(partId: UUID, newName: String): Boolean = transaction {
+        VoiceParts.update({ VoiceParts.id eq partId }) {
+            it[name] = newName
+        } > 0
+    }
+
     fun deletePart(partId: UUID): Boolean = transaction {
         VoiceAssignments.deleteWhere { voicePartId eq partId }
         VoiceParts.deleteWhere { VoiceParts.id eq partId } > 0
