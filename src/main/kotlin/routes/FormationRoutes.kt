@@ -19,6 +19,9 @@ data class FormationResponse(val id: String, val name: String, val rowSizes: Str
 data class PlacementBody(val choristId: String, val gridX: Int, val gridY: Int)
 
 @Serializable
+data class RenameFormationRequest(val name: String)
+
+@Serializable
 data class RowSizesRequest(val rowSizes: String)
 
 @Serializable
@@ -76,6 +79,16 @@ fun Route.formationRoutes() {
         delete {
             val id = UUID.fromString(call.parameters["id"])
             if (FormationService.delete(id)) {
+                call.respond(HttpStatusCode.OK)
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
+        }
+
+        put("/name") {
+            val id = UUID.fromString(call.parameters["id"])
+            val req = call.receive<RenameFormationRequest>()
+            if (FormationService.rename(id, req.name)) {
                 call.respond(HttpStatusCode.OK)
             } else {
                 call.respond(HttpStatusCode.NotFound)

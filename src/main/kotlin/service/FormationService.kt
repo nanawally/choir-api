@@ -125,6 +125,12 @@ object FormationService {
         FormationDTO(newId, original[Formations.name], original[Formations.rowSizes])
     }
 
+    fun rename(formationId: UUID, newName: String): Boolean = transaction {
+        Formations.update({ Formations.id eq formationId }) {
+            it[name] = newName
+        } > 0
+    }
+
     fun updateRowSizes(formationId: UUID, rowSizes: String): Boolean = transaction {
         Formations.update ({ Formations.id eq formationId }) {
             it[Formations.rowSizes] = rowSizes
