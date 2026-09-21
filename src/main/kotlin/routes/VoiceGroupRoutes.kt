@@ -19,6 +19,9 @@ String)
 data class UpdateVoicePartRequest(val name: String, val color: String, val shape: String)
 
 @Serializable
+data class ReorderVoicePartsRequest(val partIds: List<String>)
+
+@Serializable
 data class AssignRequest(val choristId: String, val voicePartId: String)
 
 @Serializable
@@ -70,6 +73,12 @@ fun Route.voiceGroupRoutes() {
                 HttpStatusCode.Created,
                 VoicePartResponse(part.id.toString(), part.name, part.color, part.shape),
             )
+        }
+
+        put("/{id}/parts/reorder") {
+            val req = call.receive<ReorderVoicePartsRequest>()
+            VoiceGroupService.reorderParts(req.partIds.map { UUID.fromString(it) })
+            call.respond(HttpStatusCode.OK)
         }
 
         put("/parts/{partId}") {

@@ -17,6 +17,7 @@ object VoiceParts : Table("voice_parts") {
     val name = varchar("name", 255)
     val color = varchar("color", 30)
     val shape = varchar("shape", 30)
+    val sortOrder = integer("sort_order").default(0)
 
     override val primaryKey = PrimaryKey(id)
 }

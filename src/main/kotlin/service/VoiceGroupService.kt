@@ -22,6 +22,7 @@ object VoiceGroupService {
             val groupId = row[VoiceGroups.id]
             val parts = VoiceParts.selectAll()
                 .where { VoiceParts.voiceGroupId eq groupId }
+                .orderBy(VoiceParts.sortOrder)
                 .map { VoicePartDTO(it[VoiceParts.id], it[VoiceParts.name],
                     it[VoiceParts.color], it[VoiceParts.shape]) }
             VoiceGroupDTO(groupId, row[VoiceGroups.name], parts)
@@ -47,11 +48,15 @@ object VoiceGroupService {
 
     fun addPart(groupId: UUID, name: String, color: String, shape: String):
             VoicePartDTO = transaction {
+        val maxOrder = VoiceParts.selectAll()
+            .where { VoiceParts.voiceGroupId eq groupId }
+            .maxOfOrNull { it[VoiceParts.sortOrder] } ?: 0
         val id = VoiceParts.insert {
             it[voiceGroupId] = groupId
             it[VoiceParts.name] = name
             it[VoiceParts.color] = color
             it[VoiceParts.shape] = shape
+            it[sortOrder] = maxOrder + 1
         } get VoiceParts.id
         VoicePartDTO(id, name, color, shape)
     }
@@ -62,6 +67,12 @@ object VoiceGroupService {
             it[color] = newColor
             it[shape] = newShape
         } > 0
+    }
+
+    fun reorderParts(partIds: List<UUID>) = transaction {
+        partIds.forEachIndexed { index, partId ->
+            VoiceParts.update({ VoiceParts.id eq partId }) { it[sortOrder] = index }
+        }
     }
 
     fun deletePart(partId: UUID): Boolean = transaction {
