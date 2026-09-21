@@ -16,7 +16,7 @@ data class AddVoicePartRequest(val name: String, val color: String, val shape:
 String)
 
 @Serializable
-data class RenameVoicePartRequest(val name: String)
+data class UpdateVoicePartRequest(val name: String, val color: String, val shape: String)
 
 @Serializable
 data class AssignRequest(val choristId: String, val voicePartId: String)
@@ -74,8 +74,8 @@ fun Route.voiceGroupRoutes() {
 
         put("/parts/{partId}") {
             val partId = UUID.fromString(call.parameters["partId"])
-            val req = call.receive<RenameVoicePartRequest>()
-            if (VoiceGroupService.renamePart(partId, req.name)) {
+            val req = call.receive<UpdateVoicePartRequest>()
+            if (VoiceGroupService.updatePart(partId, req.name, req.color, req.shape)) {
                 call.respond(HttpStatusCode.OK)
             } else {
                 call.respond(HttpStatusCode.NotFound)
