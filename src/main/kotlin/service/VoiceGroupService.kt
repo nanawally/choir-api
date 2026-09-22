@@ -11,7 +11,7 @@ import java.util.UUID
 
 data class VoicePartDTO(val id: UUID, val name: String, val color: String, val
 shape: String)
-data class VoiceGroupDTO(val id: UUID, val name: String, val parts:
+data class VoiceGroupDTO(val id: UUID, val name: String, val isStandard: Boolean, val parts:
 List<VoicePartDTO>)
 data class VoiceAssignmentDTO(val choristId: UUID, val voicePartId: UUID)
 
@@ -25,16 +25,29 @@ object VoiceGroupService {
                 .orderBy(VoiceParts.sortOrder)
                 .map { VoicePartDTO(it[VoiceParts.id], it[VoiceParts.name],
                     it[VoiceParts.color], it[VoiceParts.shape]) }
-            VoiceGroupDTO(groupId, row[VoiceGroups.name], parts)
+            VoiceGroupDTO(groupId, row[VoiceGroups.name], row[VoiceGroups.isStandard], parts)
         }
         groups
     }
 
-    fun create(name: String): VoiceGroupDTO = transaction {
+    fun create(name: String, isStandard: Boolean = false): VoiceGroupDTO = transaction {
         val id = VoiceGroups.insert {
             it[VoiceGroups.name] = name
+            it[VoiceGroups.isStandard] = isStandard
         } get VoiceGroups.id
-        VoiceGroupDTO(id, name, emptyList())
+        VoiceGroupDTO(id, name, isStandard, emptyList())
+    }
+
+    fun rename(id: UUID, name: String): Boolean = transaction {
+        VoiceGroups.update({ VoiceGroups.id eq id }) {
+            it[VoiceGroups.name] = name
+        } > 0
+    }
+
+    fun setStandard(id: UUID, isStandard: Boolean): Boolean = transaction {
+        VoiceGroups.update({ VoiceGroups.id eq id }) {
+            it[VoiceGroups.isStandard] = isStandard
+        } > 0
     }
 
     fun delete(id: UUID): Boolean = transaction {

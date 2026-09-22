@@ -10,7 +10,10 @@ import service.VoiceGroupService
 import java.util.UUID
 
 @Serializable
-data class CreateVoiceGroupRequest(val name: String)
+data class CreateVoiceGroupRequest(val name: String, val isStandard: Boolean = false)
+
+@Serializable
+data class RenameVoiceGroupRequest(val name: String)
 
 @Serializable
 data class AddVoicePartRequest(val name: String, val color: String, val shape:
@@ -30,7 +33,7 @@ data class VoicePartResponse(val id: String, val name: String, val color: String
                              val shape: String)
 
 @Serializable
-data class VoiceGroupResponse(val id: String, val name: String, val parts:
+data class VoiceGroupResponse(val id: String, val name: String, val isStandard: Boolean, val parts:
 List<VoicePartResponse>)
 
 @Serializable
@@ -41,7 +44,7 @@ fun Route.voiceGroupRoutes() {
         get {
             val groups = VoiceGroupService.list().map { g ->
                 VoiceGroupResponse(
-                    g.id.toString(), g.name,
+                    g.id.toString(), g.name, g.isStandard,
                     g.parts.map { VoicePartResponse(it.id.toString(), it.name, it.color, it.shape) },
                 )
             }
@@ -51,11 +54,34 @@ fun Route.voiceGroupRoutes() {
         post {
             requireRole("admin") ?: return@post
             val req = call.receive<CreateVoiceGroupRequest>()
-            val group = VoiceGroupService.create(req.name)
+            val group = VoiceGroupService.create(req.name, req.isStandard)
             call.respond(
                 HttpStatusCode.Created,
-                VoiceGroupResponse(group.id.toString(), group.name, emptyList()),
+                VoiceGroupResponse(group.id.toString(), group.name, group.isStandard, emptyList()),
             )
+        }
+
+        put("/{id}") {
+            requireRole("admin") ?: return@put
+            val id = UUID.fromString(call.parameters["id"])
+            val req = call.receive<RenameVoiceGroupRequest>()
+            if (VoiceGroupService.rename(id, req.name)) {
+                call.respond(HttpStatusCode.OK)
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
+        }
+
+        put("/{id}/standard") {
+            requireRole("admin") ?: return@put
+            val id = UUID.fromString(call.parameters["id"])
+            val body = call.receive<Map<String, Boolean>>()
+            val isStandard = body["isStandard"] ?: false
+            if (VoiceGroupService.setStandard(id, isStandard)) {
+                call.respond(HttpStatusCode.OK)
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
         }
 
         delete("/{id}") {

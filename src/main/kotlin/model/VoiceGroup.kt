@@ -6,6 +6,7 @@ import org.jetbrains.exposed.sql.Table
 object VoiceGroups : Table("voice_groups") {
     val id = uuid("id").autoGenerate()
     val name = varchar("name", 255)
+    val isStandard = bool("is_standard").default(false)
 
     override val primaryKey = PrimaryKey(id)
 }

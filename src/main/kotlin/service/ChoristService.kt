@@ -9,26 +9,53 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.UUID
 
-data class ChoristDTO(val id: UUID, val name: String)
+data class ChoristDTO(
+    val id: UUID,
+    val name: String,
+    val isSectionLeader: Boolean,
+    val isArchived: Boolean,
+)
 
 object ChoristService {
 
-    fun list(): List<ChoristDTO> = transaction {
+    fun list(includeArchived: Boolean = false): List<ChoristDTO> = transaction {
         Chorists.selectAll()
-            .map { ChoristDTO(it[Chorists.id], it[Chorists.name]) }
+            .let { if (!includeArchived) it.where { Chorists.isArchived eq false } else it }
+            .map {
+                ChoristDTO(
+                    it[Chorists.id],
+                    it[Chorists.name],
+                    it[Chorists.isSectionLeader],
+                    it[Chorists.isArchived],
+                )
+            }
     }
 
-    fun create(name: String): ChoristDTO = transaction {
+    fun create(name: String, isSectionLeader: Boolean = false): ChoristDTO = transaction {
         val id = Chorists.insert {
             it[Chorists.name] = name
+            it[Chorists.isSectionLeader] = isSectionLeader
         } get Chorists.id
 
-        ChoristDTO(id, name)
+        ChoristDTO(id, name, isSectionLeader, false)
     }
 
-    fun rename(id: UUID, newName: String): Boolean = transaction {
+    fun update(id: UUID, name: String, isSectionLeader: Boolean): Boolean = transaction {
         Chorists.update({ Chorists.id eq id }) {
-            it[name] = newName
+            it[Chorists.name] = name
+            it[Chorists.isSectionLeader] = isSectionLeader
+        } > 0
+    }
+
+    fun archive(id: UUID): Boolean = transaction {
+        Chorists.update({ Chorists.id eq id }) {
+            it[isArchived] = true
+        } > 0
+    }
+
+    fun unarchive(id: UUID): Boolean = transaction {
+        Chorists.update({ Chorists.id eq id }) {
+            it[isArchived] = false
         } > 0
     }
 
