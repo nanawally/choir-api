@@ -1,5 +1,6 @@
 package routes
 
+import auth.requireRole
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -47,6 +48,7 @@ fun Route.formationRoutes() {
         }
 
         post {
+            requireRole("admin") ?: return@post
             val concertId = UUID.fromString(call.parameters["concertId"])
             val req = call.receive<CreateFormationRequest>()
             val formation = FormationService.create(concertId, req.name)
@@ -77,6 +79,7 @@ fun Route.formationRoutes() {
         }
 
         delete {
+            requireRole("admin") ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
             if (FormationService.delete(id)) {
                 call.respond(HttpStatusCode.OK)
@@ -86,6 +89,7 @@ fun Route.formationRoutes() {
         }
 
         put("/name") {
+            requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
             val req = call.receive<RenameFormationRequest>()
             if (FormationService.rename(id, req.name)) {
@@ -96,6 +100,7 @@ fun Route.formationRoutes() {
         }
 
         put("/placements") {
+            requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
             val body = call.receive<List<PlacementBody>>()
             FormationService.savePlacements(
@@ -106,6 +111,7 @@ fun Route.formationRoutes() {
         }
 
         put("/row-sizes") {
+            requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
             val req = call.receive<RowSizesRequest>()
             FormationService.updateRowSizes(id, req.rowSizes)
@@ -113,6 +119,7 @@ fun Route.formationRoutes() {
         }
 
         post("/duplicate") {
+            requireRole("admin") ?: return@post
             val id = UUID.fromString(call.parameters["id"])
             val result = FormationService.duplicate(id)
             if (result != null) {
@@ -126,6 +133,7 @@ fun Route.formationRoutes() {
         }
 
         post("/copy") {
+            requireRole("admin") ?: return@post
             val id = UUID.fromString(call.parameters["id"])
             val body = call.receive<CopyToConcertBody>()
             val result = FormationService.copyToConcert(id, UUID.fromString(body.targetConcertId))

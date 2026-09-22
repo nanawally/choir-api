@@ -1,5 +1,6 @@
 package routes
 
+import auth.requireRole
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -27,12 +28,14 @@ fun Route.choristRoutes() {
         }
 
         post {
+            requireRole("admin") ?: return@post
             val req = call.receive<CreateChoristRequest>()
             val chorist = ChoristService.create(req.name)
             call.respond(HttpStatusCode.Created, ChoristResponse(chorist.id.toString(), chorist.name))
         }
 
         put("/{id}") {
+            requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
             val req = call.receive<RenameChoristRequest>()
             if (ChoristService.rename(id, req.name)) {
@@ -43,6 +46,7 @@ fun Route.choristRoutes() {
         }
 
         delete("/{id}") {
+            requireRole("admin") ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
             if (ChoristService.delete(id)) {
                 call.respond(HttpStatusCode.OK)

@@ -1,6 +1,8 @@
+import auth.configureAuth
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.response.*
@@ -18,22 +20,28 @@ fun Application.module() {
         allowMethod(HttpMethod.Put)
         allowMethod(HttpMethod.Delete)
         allowHeader(HttpHeaders.ContentType)
+        allowHeader(HttpHeaders.Authorization)
         anyHost()
     }
 
+    configureAuth()
     configureDatabase()
 
     routing {
         get("/health") {
             call.respondText("OK")
         }
-        choristRoutes()
-        concertRoutes()
-        concertChoristRoutes()
-        concertSongRoutes()
-        songRoutes()
-        formationRoutes()
-        songFormationRoutes()
-        voiceGroupRoutes()
+        authRoutes()
+
+        authenticate("auth-jwt") {
+            choristRoutes()
+            concertRoutes()
+            concertChoristRoutes()
+            concertSongRoutes()
+            songRoutes()
+            formationRoutes()
+            songFormationRoutes()
+            voiceGroupRoutes()
+        }
     }
 }

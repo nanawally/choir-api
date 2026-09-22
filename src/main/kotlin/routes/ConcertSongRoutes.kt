@@ -1,5 +1,6 @@
 package routes
 
+import auth.requireRole
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -31,6 +32,7 @@ fun Route.concertSongRoutes() {
         }
 
         post {
+            requireRole("admin") ?: return@post
             val concertId = UUID.fromString(call.parameters["concertId"])
             val req = call.receive<AddSongToConcertRequest>()
             val song = ConcertSongService.addToConcert(concertId, UUID.fromString(req.songId))
@@ -41,6 +43,7 @@ fun Route.concertSongRoutes() {
         }
 
         put("/reorder") {
+            requireRole("admin") ?: return@put
             val concertId = UUID.fromString(call.parameters["concertId"])
             val req = call.receive<ReorderConcertSongsRequest>()
             ConcertSongService.reorder(concertId, req.concertSongIds.map { UUID.fromString(it) })
@@ -48,6 +51,7 @@ fun Route.concertSongRoutes() {
         }
 
         delete("/{id}") {
+            requireRole("admin") ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
             if (ConcertSongService.removeFromConcert(id)) {
                 call.respond(HttpStatusCode.OK)
@@ -66,6 +70,7 @@ fun Route.concertSongRoutes() {
         }
 
         put("/hidden") {
+            requireRole("admin") ?: return@put
             val concertSongId = UUID.fromString(call.parameters["concertSongId"])
             val req = call.receive<HiddenChoristRequest>()
             ConcertSongService.setHiddenChorists(concertSongId, req.choristIds.map {

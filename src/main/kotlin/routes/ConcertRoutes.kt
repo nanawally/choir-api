@@ -1,5 +1,6 @@
 package routes
 
+import auth.requireRole
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -30,6 +31,7 @@ fun Route.concertRoutes() {
         }
 
         post {
+            requireRole("admin") ?: return@post
             val req = call.receive<CreateConcertRequest>()
             val concert = ConcertService.create(req.name)
             call.respond(
@@ -39,6 +41,7 @@ fun Route.concertRoutes() {
         }
 
         put("/{id}") {
+            requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
             val req = call.receive<RenameConcertRequest>()
             if (ConcertService.rename(id, req.name)) {
@@ -49,6 +52,7 @@ fun Route.concertRoutes() {
         }
 
         delete("/{id}") {
+            requireRole("admin") ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
             if (ConcertService.delete(id)) {
                 call.respond(HttpStatusCode.OK)
@@ -58,6 +62,7 @@ fun Route.concertRoutes() {
         }
 
         post("/{id}/duplicate") {
+            requireRole("admin") ?: return@post
             val id = UUID.fromString(call.parameters["id"])
             val req = call.receive<DuplicateConcertRequest>()
             val concert = ConcertService.duplicate(id, req.name)

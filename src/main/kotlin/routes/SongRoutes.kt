@@ -1,5 +1,6 @@
 package routes
 
+import auth.requireRole
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -26,6 +27,7 @@ fun Route.songRoutes() {
         }
 
         post {
+            requireRole("admin") ?: return@post
             val req = call.receive<CreateSongRequest>()
             val song = SongService.create(req.name)
             call.respond(
@@ -35,6 +37,7 @@ fun Route.songRoutes() {
         }
 
         put("/{id}") {
+            requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
             val req = call.receive<RenameSongRequest>()
             if (SongService.rename(id, req.name)) {
@@ -45,6 +48,7 @@ fun Route.songRoutes() {
         }
 
         delete("/{id}") {
+            requireRole("admin") ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
             if (SongService.delete(id)) {
                 call.respond(HttpStatusCode.OK)

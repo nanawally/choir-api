@@ -8,6 +8,7 @@ import model.HiddenChorists
 import model.Placements
 import model.SongFormations
 import model.Songs
+import model.Users
 import model.VoiceAssignments
 import model.VoiceGroups
 import model.VoiceParts
@@ -30,7 +31,7 @@ fun Application.configureDatabase() {
     transaction {
         SchemaUtils.createMissingTablesAndColumns(
             Chorists, Concerts, ConcertChorists, ConcertSongs, Formations, HiddenChorists, Placements,
-            Songs, SongFormations, VoiceGroups, VoiceParts, VoiceAssignments
+            Songs, SongFormations, Users, VoiceGroups, VoiceParts, VoiceAssignments
         )
     }
 }

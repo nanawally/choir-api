@@ -1,5 +1,6 @@
 package routes
 
+import auth.requireRole
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -21,6 +22,7 @@ fun Route.songFormationRoutes() {
         }
 
         put {
+            requireRole("admin") ?: return@put
             val concertSongId = UUID.fromString(call.parameters["concertSongId"])
             val body = call.receive<SetSongFormationsRequest>()
             SongFormationService.setBySong(

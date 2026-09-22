@@ -5,6 +5,11 @@ ktor:
   deployment:
     port: 8081
 
+jwt:
+  secret: ${JWT_SECRET}
+  issuer: "melisma"
+  audience: "melisma-app"
+
 database:
   url: ${DATABASE_URL}
   user: ${DATABASE_USER}

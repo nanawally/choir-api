@@ -1,5 +1,6 @@
 package routes
 
+import auth.requireRole
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -48,6 +49,7 @@ fun Route.voiceGroupRoutes() {
         }
 
         post {
+            requireRole("admin") ?: return@post
             val req = call.receive<CreateVoiceGroupRequest>()
             val group = VoiceGroupService.create(req.name)
             call.respond(
@@ -57,6 +59,7 @@ fun Route.voiceGroupRoutes() {
         }
 
         delete("/{id}") {
+            requireRole("admin") ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
             if (VoiceGroupService.delete(id)) {
                 call.respond(HttpStatusCode.OK)
@@ -66,6 +69,7 @@ fun Route.voiceGroupRoutes() {
         }
 
         post("/{id}/parts") {
+            requireRole("admin") ?: return@post
             val groupId = UUID.fromString(call.parameters["id"])
             val req = call.receive<AddVoicePartRequest>()
             val part = VoiceGroupService.addPart(groupId, req.name, req.color, req.shape)
@@ -76,12 +80,14 @@ fun Route.voiceGroupRoutes() {
         }
 
         put("/{id}/parts/reorder") {
+            requireRole("admin") ?: return@put
             val req = call.receive<ReorderVoicePartsRequest>()
             VoiceGroupService.reorderParts(req.partIds.map { UUID.fromString(it) })
             call.respond(HttpStatusCode.OK)
         }
 
         put("/parts/{partId}") {
+            requireRole("admin") ?: return@put
             val partId = UUID.fromString(call.parameters["partId"])
             val req = call.receive<UpdateVoicePartRequest>()
             if (VoiceGroupService.updatePart(partId, req.name, req.color, req.shape)) {
@@ -92,6 +98,7 @@ fun Route.voiceGroupRoutes() {
         }
 
         delete("/parts/{partId}") {
+            requireRole("admin") ?: return@delete
             val partId = UUID.fromString(call.parameters["partId"])
             if (VoiceGroupService.deletePart(partId)) {
                 call.respond(HttpStatusCode.OK)
@@ -109,6 +116,7 @@ fun Route.voiceGroupRoutes() {
         }
 
         post("/assignments") {
+            requireRole("admin") ?: return@post
             val req = call.receive<AssignRequest>()
             VoiceGroupService.assign(UUID.fromString(req.choristId),
                 UUID.fromString(req.voicePartId))
@@ -116,6 +124,7 @@ fun Route.voiceGroupRoutes() {
         }
 
         delete("/{groupId}/assignments/{choristId}") {
+            requireRole("admin") ?: return@delete
             val groupId = UUID.fromString(call.parameters["groupId"])
             val choristId = UUID.fromString(call.parameters["choristId"])
             VoiceGroupService.unassign(choristId, groupId)
