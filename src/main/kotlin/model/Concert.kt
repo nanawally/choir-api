@@ -5,6 +5,8 @@ import org.jetbrains.exposed.sql.Table
 object Concerts : Table("concerts") {
     val id = uuid("id").autoGenerate()
     val name = varchar("name", 255)
+    val date = varchar("date", 10).nullable()
+    val imageUrl = varchar("image_url", 1024).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

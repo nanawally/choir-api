@@ -9,26 +9,28 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import java.util.*
 
-data class ConcertDTO(val id: UUID, val name: String)
+data class ConcertDTO(val id: UUID, val name: String, val date: String?, val imageUrl: String?)
 
 object ConcertService {
 
     fun list(): List<ConcertDTO> = transaction {
         Concerts.selectAll()
-            .map { ConcertDTO(it[Concerts.id], it[Concerts.name]) }
+            .map { ConcertDTO(it[Concerts.id], it[Concerts.name], it[Concerts.date], it[Concerts.imageUrl]) }
     }
 
-    fun create(name: String): ConcertDTO = transaction {
+    fun create(name: String, date: String?): ConcertDTO = transaction {
         val id = Concerts.insert {
             it[Concerts.name] = name
+            it[Concerts.date] = date
         } get Concerts.id
 
-        ConcertDTO(id, name)
+        ConcertDTO(id, name, date, null)
     }
 
-    fun rename(id: UUID, newName: String): Boolean = transaction {
+    fun update(id: UUID, name: String, date: String?): Boolean = transaction {
         Concerts.update({ Concerts.id eq id }) {
-            it[name] = newName
+            it[Concerts.name] = name
+            it[Concerts.date] = date
         } > 0
     }
 
@@ -62,6 +64,8 @@ object ConcertService {
 
         val newConcertId = Concerts.insert {
             it[name] = newName
+            it[date] = original[Concerts.date]
+            it[imageUrl] = original[Concerts.imageUrl]
         } get Concerts.id
 
         ConcertChorists.selectAll()
@@ -130,6 +134,6 @@ object ConcertService {
                 }
         }
 
-        ConcertDTO(newConcertId, newName)
+        ConcertDTO(newConcertId, newName, original[Concerts.date], original[Concerts.imageUrl])
     }
 }
