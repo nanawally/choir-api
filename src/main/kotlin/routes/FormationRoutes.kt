@@ -36,6 +36,9 @@ data class FormationDetailResponse(
 @Serializable
 data class CopyToConcertBody(val targetConcertId: String)
 
+@Serializable
+data class CopyBaseIntoConcertBody(val concertId: String)
+
 fun Route.formationRoutes() {
     route("/concerts/{concertId}/formations") {
 
@@ -145,6 +148,40 @@ fun Route.formationRoutes() {
             } else {
                 call.respond(HttpStatusCode.NotFound)
             }
+        }
+    }
+
+    route("/base-formations") {
+        get {
+            val formations = FormationService.listBase().map {
+                FormationResponse(it.id.toString(), it.name, it.rowSizes)
+            }
+            call.respond(formations)
+        }
+
+        post {
+            requireRole("admin") ?: return@post
+            val req = call.receive<CreateFormationRequest>()
+            val formation = FormationService.createBase(req.name)
+            call.respond(
+                HttpStatusCode.Created,
+                FormationResponse(formation.id.toString(), formation.name, formation.rowSizes)
+            )
+        }
+    }
+
+    post("/formations/{id}/copy-into-concert") {
+        requireRole("admin") ?: return@post
+        val id = UUID.fromString(call.parameters["id"])
+        val body = call.receive<CopyBaseIntoConcertBody>()
+        val result = FormationService.copyBaseIntoConcert(id, UUID.fromString(body.concertId))
+        if (result != null) {
+            call.respond(
+                HttpStatusCode.Created,
+                FormationResponse(result.id.toString(), result.name, result.rowSizes)
+            )
+        } else {
+            call.respond(HttpStatusCode.NotFound)
         }
     }
 }

@@ -4,7 +4,7 @@ import org.jetbrains.exposed.sql.Table
 
 object Formations : Table("formations") {
     val id = uuid("id").autoGenerate()
-    val concertId = uuid("concert_id").references(Concerts.id)
+    val concertId = uuid("concert_id").references(Concerts.id).nullable()
     val name = varchar("name", 255)
     val rowSizes = varchar("row_sizes", 255).default("[]")
 

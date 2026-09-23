@@ -1,5 +1,6 @@
 package service
 
+import model.ConcertChorists
 import model.Formations
 import model.Placements
 import model.SongFormations
@@ -135,5 +136,57 @@ object FormationService {
         Formations.update ({ Formations.id eq formationId }) {
             it[Formations.rowSizes] = rowSizes
         } > 0
+    }
+
+    fun listBase(): List<FormationDTO> = transaction {
+        Formations.selectAll()
+            .where { Formations.concertId.isNull() }
+            .orderBy(Formations.name)
+            .map { FormationDTO(it[Formations.id], it[Formations.name], it[Formations.rowSizes]) }
+    }
+
+    fun createBase(name: String): FormationDTO = transaction {
+        val id = Formations.insert {
+            it[Formations.concertId] = null
+            it[Formations.name] = name
+        } get Formations.id
+
+        FormationDTO(id, name, "[]")
+    }
+
+    fun copyBaseIntoConcert(formationId: UUID, concertId: UUID): FormationDTO? = transaction {
+        val original = Formations.selectAll()
+            .where { Formations.id eq formationId }
+            .firstOrNull() ?: return@transaction null
+
+        // Only allow copying base formations (null concertId)
+        if (original[Formations.concertId] != null) return@transaction null
+
+        val newId = Formations.insert {
+            it[Formations.concertId] = concertId
+            it[name] = original[Formations.name]
+            it[rowSizes] = original[Formations.rowSizes]
+        } get Formations.id
+
+        // Get the concert roster to filter placements
+        val concertChoristIds = ConcertChorists.selectAll()
+            .where { ConcertChorists.concertId eq concertId }
+            .map { it[ConcertChorists.choristId] }
+            .toSet()
+
+        Placements.selectAll()
+            .where { Placements.formationId eq formationId }
+            .forEach { p ->
+                if (p[Placements.choristId] in concertChoristIds) {
+                    Placements.insert {
+                        it[Placements.formationId] = newId
+                        it[choristId] = p[Placements.choristId]
+                        it[gridX] = p[Placements.gridX]
+                        it[gridY] = p[Placements.gridY]
+                    }
+                }
+            }
+
+        FormationDTO(newId, original[Formations.name], original[Formations.rowSizes])
     }
 }
