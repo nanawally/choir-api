@@ -22,6 +22,17 @@ object ConcertChorists : Table("concert_chorists") {
 object Songs : Table("songs") {
     val id = uuid("id").autoGenerate()
     val name = varchar("name", 255)
+    val composer = varchar("composer", 255).nullable()
+    val arranger = varchar("arranger", 255).nullable()
+    val delning = varchar("delning", 255).nullable()
+    val languages = varchar("languages", 500).nullable()  // comma-separated
+    val length = varchar("length", 10).nullable()          // "MM:SS" or "MM"
+    val accompanied = bool("accompanied").nullable()
+    val instrument = varchar("instrument", 255).nullable()
+    val year = integer("year").nullable()
+    val collectionName = varchar("collection_name", 255).nullable()
+    val soloists = varchar("soloists", 500).nullable()     // TBD: may become boolean
+    val hasSheetMusic = bool("has_sheet_music").default(false)
 
     override val primaryKey = PrimaryKey(id)
 }
