@@ -10,6 +10,7 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
+import model.Concerts
 import java.util.*
 
 data class SongDTO(
@@ -24,7 +25,8 @@ data class SongDTO(
     val instrument: String?,
     val year: Int?,
     val collectionName: String?,
-    val soloists: String?,
+    val hasSoloists: Boolean?,
+    val soloistNames: String?,
     val hasSheetMusic: Boolean,
 )
 
@@ -42,7 +44,8 @@ object SongService {
         instrument = row[Songs.instrument],
         year = row[Songs.year],
         collectionName = row[Songs.collectionName],
-        soloists = row[Songs.soloists],
+        hasSoloists = row[Songs.hasSoloists],
+        soloistNames = row[Songs.soloistNames],
         hasSheetMusic = row[Songs.hasSheetMusic],
     )
 
@@ -55,12 +58,12 @@ object SongService {
             it[Songs.name] = name
         } get Songs.id
 
-        SongDTO(id, name, null, null, null, null, null, null, null, null, null, null, false)
+        SongDTO(id, name, null, null, null, null, null, null, null, null, null, null, null, false)
     }
 
     fun update(id: UUID, name: String, composer: String?, arranger: String?, delning: String?,
                languages: String?, length: String?, accompanied: Boolean?, instrument: String?,
-               year: Int?, collectionName: String?, soloists: String?, hasSheetMusic: Boolean): Boolean = transaction {
+               year: Int?, collectionName: String?, hasSoloists: Boolean?, soloistNames: String?, hasSheetMusic: Boolean): Boolean = transaction {
         Songs.update({ Songs.id eq id }) {
             it[Songs.name] = name
             it[Songs.composer] = composer
@@ -72,9 +75,18 @@ object SongService {
             it[Songs.instrument] = instrument
             it[Songs.year] = year
             it[Songs.collectionName] = collectionName
-            it[Songs.soloists] = soloists
+            it[Songs.hasSoloists] = hasSoloists
+            it[Songs.soloistNames] = soloistNames
             it[Songs.hasSheetMusic] = hasSheetMusic
         } > 0
+    }
+
+    fun listConcertsForSong(songId: UUID): List<Pair<UUID, String>> = transaction {
+        (ConcertSongs innerJoin Concerts)
+            .selectAll()
+            .where { ConcertSongs.songId eq songId }
+            .map { it[Concerts.id] to it[Concerts.name] }
+            .distinctBy { it.first }
     }
 
     fun delete(id: UUID): Boolean = transaction {

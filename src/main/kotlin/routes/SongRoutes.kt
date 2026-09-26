@@ -24,7 +24,8 @@ data class UpdateSongRequest(
     val instrument: String? = null,
     val year: Int? = null,
     val collectionName: String? = null,
-    val soloists: String? = null,
+    val hasSoloists: Boolean? = null,
+    val soloistNames: String? = null,
     val hasSheetMusic: Boolean = false,
 )
 
@@ -41,7 +42,8 @@ data class SongResponse(
     val instrument: String? = null,
     val year: Int? = null,
     val collectionName: String? = null,
-    val soloists: String? = null,
+    val hasSoloists: Boolean? = null,
+    val soloistNames: String? = null,
     val hasSheetMusic: Boolean = false,
 )
 
@@ -57,7 +59,8 @@ private fun toResponse(dto: service.SongDTO) = SongResponse(
     instrument = dto.instrument,
     year = dto.year,
     collectionName = dto.collectionName,
-    soloists = dto.soloists,
+    hasSoloists = dto.hasSoloists,
+    soloistNames = dto.soloistNames,
     hasSheetMusic = dto.hasSheetMusic,
 )
 
@@ -76,13 +79,21 @@ fun Route.songRoutes() {
             call.respond(HttpStatusCode.Created, toResponse(song))
         }
 
+        get("/{id}/concerts") {
+            val id = UUID.fromString(call.parameters["id"])
+            val concerts = SongService.listConcertsForSong(id).map { (cId, name) ->
+                mapOf("id" to cId.toString(), "name" to name)
+            }
+            call.respond(concerts)
+        }
+
         put("/{id}") {
             requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
             val req = call.receive<UpdateSongRequest>()
             if (SongService.update(id, req.name, req.composer, req.arranger, req.delning,
                     req.languages, req.length, req.accompanied, req.instrument,
-                    req.year, req.collectionName, req.soloists, req.hasSheetMusic)) {
+                    req.year, req.collectionName, req.hasSoloists, req.soloistNames, req.hasSheetMusic)) {
                 call.respond(HttpStatusCode.OK)
             } else {
                 call.respond(HttpStatusCode.NotFound)

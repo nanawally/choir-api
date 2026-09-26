@@ -31,7 +31,8 @@ object Songs : Table("songs") {
     val instrument = varchar("instrument", 255).nullable()
     val year = integer("year").nullable()
     val collectionName = varchar("collection_name", 255).nullable()
-    val soloists = varchar("soloists", 500).nullable()     // TBD: may become boolean
+    val hasSoloists = bool("has_soloists").nullable()
+    val soloistNames = varchar("soloist_names", 500).nullable()
     val hasSheetMusic = bool("has_sheet_music").default(false)
 
     override val primaryKey = PrimaryKey(id)
