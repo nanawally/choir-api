@@ -33,6 +33,5 @@ fun Application.configureDatabase() {
             Chorists, Concerts, ConcertChorists, ConcertSongs, Formations, HiddenChorists, Placements,
             Songs, SongFormations, Users, VoiceGroups, VoiceParts, VoiceAssignments
         )
-
     }
 }

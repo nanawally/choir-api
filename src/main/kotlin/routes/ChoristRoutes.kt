@@ -10,20 +10,20 @@ import service.ChoristService
 import java.util.UUID
 
 @Serializable
-data class CreateChoristRequest(val name: String, val isSectionLeader: Boolean = false)
+data class CreateChoristRequest(val firstName: String, val lastName: String, val isSectionLeader: Boolean = false)
 
 @Serializable
-data class UpdateChoristRequest(val name: String, val isSectionLeader: Boolean = false)
+data class UpdateChoristRequest(val firstName: String, val lastName: String, val isSectionLeader: Boolean = false)
 
 @Serializable
-data class ChoristResponse(val id: String, val name: String, val isSectionLeader: Boolean, val isArchived: Boolean)
+data class ChoristResponse(val id: String, val firstName: String, val lastName: String, val isSectionLeader: Boolean, val isArchived: Boolean)
 
 fun Route.choristRoutes() {
     route("/chorists") {
         get {
             val includeArchived = call.request.queryParameters["includeArchived"] == "true"
             val chorists = ChoristService.list(includeArchived).map {
-                ChoristResponse(it.id.toString(), it.name, it.isSectionLeader, it.isArchived)
+                ChoristResponse(it.id.toString(), it.firstName, it.lastName, it.isSectionLeader, it.isArchived)
             }
             call.respond(chorists)
         }
@@ -31,9 +31,9 @@ fun Route.choristRoutes() {
         post {
             requireRole("admin") ?: return@post
             val req = call.receive<CreateChoristRequest>()
-            val chorist = ChoristService.create(req.name, req.isSectionLeader)
+            val chorist = ChoristService.create(req.firstName, req.lastName, req.isSectionLeader)
             call.respond(HttpStatusCode.Created, ChoristResponse(
-                chorist.id.toString(), chorist.name, chorist.isSectionLeader, chorist.isArchived,
+                chorist.id.toString(), chorist.firstName, chorist.lastName, chorist.isSectionLeader, chorist.isArchived,
             ))
         }
 
@@ -41,7 +41,7 @@ fun Route.choristRoutes() {
             requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
             val req = call.receive<UpdateChoristRequest>()
-            if (ChoristService.update(id, req.name, req.isSectionLeader)) {
+            if (ChoristService.update(id, req.firstName, req.lastName, req.isSectionLeader)) {
                 call.respond(HttpStatusCode.OK)
             } else {
                 call.respond(HttpStatusCode.NotFound)

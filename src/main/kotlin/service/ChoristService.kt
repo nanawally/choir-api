@@ -11,7 +11,8 @@ import java.util.UUID
 
 data class ChoristDTO(
     val id: UUID,
-    val name: String,
+    val firstName: String,
+    val lastName: String,
     val isSectionLeader: Boolean,
     val isArchived: Boolean,
 )
@@ -24,25 +25,28 @@ object ChoristService {
             .map {
                 ChoristDTO(
                     it[Chorists.id],
-                    it[Chorists.name],
+                    it[Chorists.firstName],
+                    it[Chorists.lastName],
                     it[Chorists.isSectionLeader],
                     it[Chorists.isArchived],
                 )
             }
     }
 
-    fun create(name: String, isSectionLeader: Boolean = false): ChoristDTO = transaction {
+    fun create(firstName: String, lastName: String, isSectionLeader: Boolean = false): ChoristDTO = transaction {
         val id = Chorists.insert {
-            it[Chorists.name] = name
+            it[Chorists.firstName] = firstName
+            it[Chorists.lastName] = lastName
             it[Chorists.isSectionLeader] = isSectionLeader
         } get Chorists.id
 
-        ChoristDTO(id, name, isSectionLeader, false)
+        ChoristDTO(id, firstName, lastName, isSectionLeader, false)
     }
 
-    fun update(id: UUID, name: String, isSectionLeader: Boolean): Boolean = transaction {
+    fun update(id: UUID, firstName: String, lastName: String, isSectionLeader: Boolean): Boolean = transaction {
         Chorists.update({ Chorists.id eq id }) {
-            it[Chorists.name] = name
+            it[Chorists.firstName] = firstName
+            it[Chorists.lastName] = lastName
             it[Chorists.isSectionLeader] = isSectionLeader
         } > 0
     }
