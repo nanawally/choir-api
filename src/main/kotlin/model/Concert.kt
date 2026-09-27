@@ -34,6 +34,7 @@ object Songs : Table("songs") {
     val hasSoloists = bool("has_soloists").nullable()
     val soloistNames = varchar("soloist_names", 500).nullable()
     val hasSheetMusic = bool("has_sheet_music").default(false)
+    val sheetMusicKey = varchar("sheet_music_key", 512).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

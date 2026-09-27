@@ -28,6 +28,7 @@ data class SongDTO(
     val hasSoloists: Boolean?,
     val soloistNames: String?,
     val hasSheetMusic: Boolean,
+    val sheetMusicKey: String?,
 )
 
 object SongService {
@@ -47,6 +48,7 @@ object SongService {
         hasSoloists = row[Songs.hasSoloists],
         soloistNames = row[Songs.soloistNames],
         hasSheetMusic = row[Songs.hasSheetMusic],
+        sheetMusicKey = row[Songs.sheetMusicKey],
     )
 
     fun list(): List<SongDTO> = transaction {
@@ -58,7 +60,7 @@ object SongService {
             it[Songs.name] = name
         } get Songs.id
 
-        SongDTO(id, name, null, null, null, null, null, null, null, null, null, null, null, false)
+        SongDTO(id, name, null, null, null, null, null, null, null, null, null, null, null, false, null)
     }
 
     fun update(id: UUID, name: String, composer: String?, arranger: String?, delning: String?,
@@ -79,6 +81,18 @@ object SongService {
             it[Songs.soloistNames] = soloistNames
             it[Songs.hasSheetMusic] = hasSheetMusic
         } > 0
+    }
+
+    fun setSheetMusicKey(id: UUID, key: String?): Boolean = transaction {
+        Songs.update({ Songs.id eq id }) {
+            it[sheetMusicKey] = key
+            it[hasSheetMusic] = key != null
+        } > 0
+    }
+
+    fun getSheetMusicKey(id: UUID): String? = transaction {
+        Songs.selectAll().where { Songs.id eq id }
+            .singleOrNull()?.get(Songs.sheetMusicKey)
     }
 
     fun listConcertsForSong(songId: UUID): List<Pair<UUID, String>> = transaction {

@@ -45,6 +45,11 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:0.61.0")
     implementation("org.postgresql:postgresql:42.7.11")
 
+    // S3-compatible storage (Neon Object Storage)
+    implementation(platform("software.amazon.awssdk:bom:2.31.59"))
+    implementation("software.amazon.awssdk:s3")
+    implementation("software.amazon.awssdk:url-connection-client")
+
     // Logging
     implementation("ch.qos.logback:logback-classic:1.5.32")
 

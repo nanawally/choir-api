@@ -8,6 +8,7 @@ import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import routes.*
+import service.StorageService
 
 fun Application.module() {
     install(ContentNegotiation) {
@@ -27,6 +28,19 @@ fun Application.module() {
     configureAuth()
     configureDatabase()
 
+    val storage = try {
+        val config = environment.config
+        StorageService(
+            endpoint = config.property("storage.endpoint").getString(),
+            accessKey = config.property("storage.accessKey").getString(),
+            secretKey = config.property("storage.secretKey").getString(),
+            region = config.property("storage.region").getString(),
+            bucket = config.property("storage.bucket").getString(),
+        )
+    } catch (_: Exception) {
+        null // Storage not configured — sheet music upload disabled
+    }
+
     routing {
         get("/health") {
             call.respondText("OK")
@@ -38,7 +52,7 @@ fun Application.module() {
             concertRoutes()
             concertChoristRoutes()
             concertSongRoutes()
-            songRoutes()
+            songRoutes(storage)
             formationRoutes()
             songFormationRoutes()
             voiceGroupRoutes()

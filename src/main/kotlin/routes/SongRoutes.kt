@@ -2,11 +2,14 @@ package routes
 
 import auth.requireRole
 import io.ktor.http.*
+import io.ktor.http.content.*
 import io.ktor.server.request.*
+import io.ktor.utils.io.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import service.SongService
+import service.StorageService
 import java.util.*
 
 @Serializable
@@ -45,6 +48,7 @@ data class SongResponse(
     val hasSoloists: Boolean? = null,
     val soloistNames: String? = null,
     val hasSheetMusic: Boolean = false,
+    val hasSheetMusicFile: Boolean = false,
 )
 
 private fun toResponse(dto: service.SongDTO) = SongResponse(
@@ -62,9 +66,10 @@ private fun toResponse(dto: service.SongDTO) = SongResponse(
     hasSoloists = dto.hasSoloists,
     soloistNames = dto.soloistNames,
     hasSheetMusic = dto.hasSheetMusic,
+    hasSheetMusicFile = dto.sheetMusicKey != null,
 )
 
-fun Route.songRoutes() {
+fun Route.songRoutes(storage: StorageService?) {
     route("/songs") {
 
         get {
@@ -103,11 +108,89 @@ fun Route.songRoutes() {
         delete("/{id}") {
             requireRole("admin") ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
+            // Delete sheet music file from storage if it exists
+            val key = SongService.getSheetMusicKey(id)
+            if (key != null && storage != null) {
+                storage.delete(key)
+            }
             if (SongService.delete(id)) {
                 call.respond(HttpStatusCode.OK)
             } else {
                 call.respond(HttpStatusCode.NotFound)
             }
+        }
+
+        post("/{id}/sheet-music") {
+            requireRole("admin") ?: return@post
+            if (storage == null) {
+                call.respond(HttpStatusCode.ServiceUnavailable, "Storage not configured")
+                return@post
+            }
+            val id = UUID.fromString(call.parameters["id"])
+            val multipart = call.receiveMultipart()
+            var fileBytes: ByteArray? = null
+
+            multipart.forEachPart { part ->
+                if (part is PartData.FileItem && part.name == "file") {
+                    fileBytes = part.provider().toByteArray()
+                }
+                part.dispose()
+            }
+
+            val bytes = fileBytes
+            if (bytes == null) {
+                call.respond(HttpStatusCode.BadRequest, "No file provided")
+                return@post
+            }
+
+            // Compress PDF with Ghostscript
+            val compressed = StorageService.compressPdf(bytes)
+
+            // Delete old file if replacing
+            val oldKey = SongService.getSheetMusicKey(id)
+            if (oldKey != null) {
+                storage.delete(oldKey)
+            }
+
+            val key = "sheet-music/$id.pdf"
+            storage.upload(key, compressed, "application/pdf")
+            SongService.setSheetMusicKey(id, key)
+
+            call.respond(HttpStatusCode.OK, mapOf("key" to key, "originalSize" to bytes.size, "compressedSize" to compressed.size))
+        }
+
+        get("/{id}/sheet-music") {
+            if (storage == null) {
+                call.respond(HttpStatusCode.ServiceUnavailable, "Storage not configured")
+                return@get
+            }
+            val id = UUID.fromString(call.parameters["id"])
+            val key = SongService.getSheetMusicKey(id)
+            if (key == null) {
+                call.respond(HttpStatusCode.NotFound)
+                return@get
+            }
+            val stream = storage.download(key)
+            call.respondOutputStream(ContentType.Application.Pdf) {
+                stream.use { it.copyTo(this) }
+            }
+        }
+
+        delete("/{id}/sheet-music") {
+            requireRole("admin") ?: return@delete
+            if (storage == null) {
+                call.respond(HttpStatusCode.ServiceUnavailable, "Storage not configured")
+                return@delete
+            }
+            val id = UUID.fromString(call.parameters["id"])
+            val key = SongService.getSheetMusicKey(id)
+            if (key == null) {
+                call.respond(HttpStatusCode.NotFound)
+                return@delete
+            }
+            storage.delete(key)
+            SongService.setSheetMusicKey(id, null)
+            call.respond(HttpStatusCode.OK)
         }
     }
 }
