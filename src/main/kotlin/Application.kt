@@ -49,7 +49,7 @@ fun Application.module() {
 
         authenticate("auth-jwt") {
             choristRoutes()
-            concertRoutes()
+            concertRoutes(storage)
             concertChoristRoutes()
             concertSongRoutes()
             songRoutes(storage)

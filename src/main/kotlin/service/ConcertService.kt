@@ -57,6 +57,17 @@ object ConcertService {
         Concerts.deleteWhere { Concerts.id eq id } > 0 // > 0 turns delete count into a boolean, returns true if a concert was deleted
     }
 
+    fun getImageUrl(id: UUID): String? = transaction {
+        Concerts.selectAll().where { Concerts.id eq id }
+            .firstOrNull()?.get(Concerts.imageUrl)
+    }
+
+    fun setImageUrl(id: UUID, url: String?) = transaction {
+        Concerts.update({ Concerts.id eq id }) {
+            it[imageUrl] = url
+        }
+    }
+
     fun duplicate(id: UUID, newName: String): ConcertDTO? = transaction {
         val original = Concerts.selectAll()
             .where { Concerts.id eq id }
