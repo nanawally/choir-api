@@ -53,7 +53,7 @@ object ConcertSongService {
         ConcertSongs.deleteWhere { ConcertSongs.id eq concertSongId } > 0
     }
 
-    fun reorder(concertId: UUID, concertSongIds: List<UUID>) = transaction {
+    fun reorder(concertSongIds: List<UUID>) = transaction {
         concertSongIds.forEachIndexed { index, csId ->
             ConcertSongs.update({ ConcertSongs.id eq csId }) { it[sortOrder] = index }
         }

@@ -23,6 +23,19 @@ data class FormationWithPlacements(
 
 object FormationService {
 
+    private fun copyPlacements(fromId: UUID, toId: UUID) {
+        Placements.selectAll()
+            .where { Placements.formationId eq fromId }
+            .forEach { p ->
+                Placements.insert {
+                    it[formationId] = toId
+                    it[choristId] = p[Placements.choristId]
+                    it[gridX] = p[Placements.gridX]
+                    it[gridY] = p[Placements.gridY]
+                }
+            }
+    }
+
     fun listByConcert(concertId: UUID): List<FormationDTO> = transaction {
         Formations.selectAll()
             .where { Formations.concertId eq concertId }
@@ -87,16 +100,7 @@ object FormationService {
             it[rowSizes] = original[Formations.rowSizes]
         } get Formations.id
 
-        Placements.selectAll()
-            .where { Placements.formationId eq id }
-            .forEach { p ->
-                Placements.insert {
-                    it[formationId] = newId
-                    it[choristId] = p[Placements.choristId]
-                    it[gridX] = p[Placements.gridX]
-                    it[gridY] = p[Placements.gridY]
-                }
-            }
+        copyPlacements(id, newId)
 
         FormationDTO(newId, original[Formations.name] + " (copy)", original[Formations.rowSizes])
     }
@@ -112,16 +116,7 @@ object FormationService {
             it[rowSizes] = original[Formations.rowSizes]
         } get Formations.id
 
-        Placements.selectAll()
-            .where { Placements.formationId eq formationId }
-            .forEach { p ->
-                Placements.insert {
-                    it[Placements.formationId] = newId
-                    it[choristId] = p[Placements.choristId]
-                    it[gridX] = p[Placements.gridX]
-                    it[gridY] = p[Placements.gridY]
-                }
-            }
+        copyPlacements(formationId, newId)
 
         FormationDTO(newId, original[Formations.name], original[Formations.rowSizes])
     }
@@ -176,14 +171,13 @@ object FormationService {
 
         Placements.selectAll()
             .where { Placements.formationId eq formationId }
+            .filter { it[Placements.choristId] in concertChoristIds }
             .forEach { p ->
-                if (p[Placements.choristId] in concertChoristIds) {
-                    Placements.insert {
-                        it[Placements.formationId] = newId
-                        it[choristId] = p[Placements.choristId]
-                        it[gridX] = p[Placements.gridX]
-                        it[gridY] = p[Placements.gridY]
-                    }
+                Placements.insert {
+                    it[Placements.formationId] = newId
+                    it[choristId] = p[Placements.choristId]
+                    it[gridX] = p[Placements.gridX]
+                    it[gridY] = p[Placements.gridY]
                 }
             }
 

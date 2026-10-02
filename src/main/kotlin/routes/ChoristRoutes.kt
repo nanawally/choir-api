@@ -41,41 +41,25 @@ fun Route.choristRoutes() {
             requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
             val req = call.receive<UpdateChoristRequest>()
-            if (ChoristService.update(id, req.firstName, req.lastName, req.isSectionLeader)) {
-                call.respond(HttpStatusCode.OK)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            respondOkOrNotFound(ChoristService.update(id, req.firstName, req.lastName, req.isSectionLeader))
         }
 
         put("/{id}/archive") {
             requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
-            if (ChoristService.archive(id)) {
-                call.respond(HttpStatusCode.OK)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            respondOkOrNotFound(ChoristService.archive(id))
         }
 
         put("/{id}/unarchive") {
             requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
-            if (ChoristService.unarchive(id)) {
-                call.respond(HttpStatusCode.OK)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            respondOkOrNotFound(ChoristService.unarchive(id))
         }
 
         delete("/{id}") {
             requireRole("admin") ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
-            if (ChoristService.delete(id)) {
-                call.respond(HttpStatusCode.OK)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            respondOkOrNotFound(ChoristService.delete(id))
         }
     }
 }

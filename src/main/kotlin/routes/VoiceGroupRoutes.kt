@@ -65,11 +65,7 @@ fun Route.voiceGroupRoutes() {
             requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
             val req = call.receive<RenameVoiceGroupRequest>()
-            if (VoiceGroupService.rename(id, req.name)) {
-                call.respond(HttpStatusCode.OK)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            respondOkOrNotFound(VoiceGroupService.rename(id, req.name))
         }
 
         put("/{id}/standard") {
@@ -77,21 +73,13 @@ fun Route.voiceGroupRoutes() {
             val id = UUID.fromString(call.parameters["id"])
             val body = call.receive<Map<String, Boolean>>()
             val isStandard = body["isStandard"] ?: false
-            if (VoiceGroupService.setStandard(id, isStandard)) {
-                call.respond(HttpStatusCode.OK)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            respondOkOrNotFound(VoiceGroupService.setStandard(id, isStandard))
         }
 
         delete("/{id}") {
             requireRole("admin") ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
-            if (VoiceGroupService.delete(id)) {
-                call.respond(HttpStatusCode.OK)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            respondOkOrNotFound(VoiceGroupService.delete(id))
         }
 
         post("/{id}/parts") {
@@ -116,21 +104,13 @@ fun Route.voiceGroupRoutes() {
             requireRole("admin") ?: return@put
             val partId = UUID.fromString(call.parameters["partId"])
             val req = call.receive<UpdateVoicePartRequest>()
-            if (VoiceGroupService.updatePart(partId, req.name, req.color, req.shape)) {
-                call.respond(HttpStatusCode.OK)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            respondOkOrNotFound(VoiceGroupService.updatePart(partId, req.name, req.color, req.shape))
         }
 
         delete("/parts/{partId}") {
             requireRole("admin") ?: return@delete
             val partId = UUID.fromString(call.parameters["partId"])
-            if (VoiceGroupService.deletePart(partId)) {
-                call.respond(HttpStatusCode.OK)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            respondOkOrNotFound(VoiceGroupService.deletePart(partId))
         }
 
         get("/{id}/assignments") {

@@ -102,14 +102,10 @@ fun Route.songRoutes(storage: StorageService?) {
             requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
             val req = call.receive<UpdateSongRequest>()
-            if (SongService.update(id, req.name, req.composer, req.arranger, req.lyricist, req.delning,
-                    req.languages, req.length, req.accompanied, req.instrument,
-                    req.year, req.collectionName, req.hasSoloists, req.soloistNames, req.hasSheetMusic,
-                    req.lyrics)) {
-                call.respond(HttpStatusCode.OK)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            respondOkOrNotFound(SongService.update(id, req.name, req.composer, req.arranger, req.lyricist, req.delning,
+                req.languages, req.length, req.accompanied, req.instrument,
+                req.year, req.collectionName, req.hasSoloists, req.soloistNames, req.hasSheetMusic,
+                req.lyrics))
         }
 
         delete("/{id}") {
@@ -120,19 +116,12 @@ fun Route.songRoutes(storage: StorageService?) {
             if (key != null && storage != null) {
                 storage.delete(key)
             }
-            if (SongService.delete(id)) {
-                call.respond(HttpStatusCode.OK)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            respondOkOrNotFound(SongService.delete(id))
         }
 
         post("/{id}/sheet-music") {
             requireRole("admin") ?: return@post
-            if (storage == null) {
-                call.respond(HttpStatusCode.ServiceUnavailable, "Storage not configured")
-                return@post
-            }
+            val s = requireStorage(storage) ?: return@post
             val id = UUID.fromString(call.parameters["id"])
             val multipart = call.receiveMultipart()
             var fileBytes: ByteArray? = null
@@ -156,28 +145,25 @@ fun Route.songRoutes(storage: StorageService?) {
             // Delete old file if replacing
             val oldKey = SongService.getSheetMusicKey(id)
             if (oldKey != null) {
-                storage.delete(oldKey)
+                s.delete(oldKey)
             }
 
             val key = "sheet-music/$id.pdf"
-            storage.upload(key, compressed, "application/pdf")
+            s.upload(key, compressed, "application/pdf")
             SongService.setSheetMusicKey(id, key)
 
             call.respond(HttpStatusCode.OK, mapOf("key" to key, "originalSize" to bytes.size, "compressedSize" to compressed.size))
         }
 
         get("/{id}/sheet-music") {
-            if (storage == null) {
-                call.respond(HttpStatusCode.ServiceUnavailable, "Storage not configured")
-                return@get
-            }
+            val s = requireStorage(storage) ?: return@get
             val id = UUID.fromString(call.parameters["id"])
             val key = SongService.getSheetMusicKey(id)
             if (key == null) {
                 call.respond(HttpStatusCode.NotFound)
                 return@get
             }
-            val stream = storage.download(key)
+            val stream = s.download(key)
             call.respondOutputStream(ContentType.Application.Pdf) {
                 stream.use { it.copyTo(this) }
             }
@@ -185,17 +171,14 @@ fun Route.songRoutes(storage: StorageService?) {
 
         delete("/{id}/sheet-music") {
             requireRole("admin") ?: return@delete
-            if (storage == null) {
-                call.respond(HttpStatusCode.ServiceUnavailable, "Storage not configured")
-                return@delete
-            }
+            val s = requireStorage(storage) ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
             val key = SongService.getSheetMusicKey(id)
             if (key == null) {
                 call.respond(HttpStatusCode.NotFound)
                 return@delete
             }
-            storage.delete(key)
+            s.delete(key)
             SongService.setSheetMusicKey(id, null)
             call.respond(HttpStatusCode.OK)
         }
@@ -210,10 +193,7 @@ fun Route.songRoutes(storage: StorageService?) {
 
         post("/{id}/audio-files") {
             requireRole("admin") ?: return@post
-            if (storage == null) {
-                call.respond(HttpStatusCode.ServiceUnavailable, "Storage not configured")
-                return@post
-            }
+            val s = requireStorage(storage) ?: return@post
             val songId = UUID.fromString(call.parameters["id"])
             val multipart = call.receiveMultipart()
             var fileBytes: ByteArray? = null
@@ -244,40 +224,34 @@ fun Route.songRoutes(storage: StorageService?) {
 
             val vpId = voicePartId?.let { UUID.fromString(it) }
             val key = "stamfiler/$songId/${UUID.randomUUID()}"
-            storage.upload(key, bytes, contentType)
+            s.upload(key, bytes, contentType)
             val dto = SongService.addAudioFile(songId, vpId, key, fileName)
             call.respond(HttpStatusCode.Created, mapOf("id" to dto.id.toString(), "voicePartId" to dto.voicePartId?.toString(), "fileName" to dto.fileName))
         }
 
         delete("/audio-files/{fileId}") {
             requireRole("admin") ?: return@delete
-            if (storage == null) {
-                call.respond(HttpStatusCode.ServiceUnavailable, "Storage not configured")
-                return@delete
-            }
+            val s = requireStorage(storage) ?: return@delete
             val fileId = UUID.fromString(call.parameters["fileId"])
             val file = SongService.getAudioFile(fileId)
             if (file == null) {
                 call.respond(HttpStatusCode.NotFound)
                 return@delete
             }
-            storage.delete(file.storageKey)
+            s.delete(file.storageKey)
             SongService.deleteAudioFile(fileId)
             call.respond(HttpStatusCode.OK)
         }
 
         get("/audio-files/{fileId}/stream") {
-            if (storage == null) {
-                call.respond(HttpStatusCode.ServiceUnavailable, "Storage not configured")
-                return@get
-            }
+            val s = requireStorage(storage) ?: return@get
             val fileId = UUID.fromString(call.parameters["fileId"])
             val file = SongService.getAudioFile(fileId)
             if (file == null) {
                 call.respond(HttpStatusCode.NotFound)
                 return@get
             }
-            val stream = storage.download(file.storageKey)
+            val stream = s.download(file.storageKey)
             val ct = if (file.fileName.endsWith(".wav")) ContentType.Audio.Any
                      else ContentType("audio", "mpeg")
             call.respondOutputStream(ct) {
@@ -306,11 +280,7 @@ fun Route.songRoutes(storage: StorageService?) {
         delete("/links/{linkId}") {
             requireRole("admin") ?: return@delete
             val linkId = UUID.fromString(call.parameters["linkId"])
-            if (SongService.deleteLink(linkId)) {
-                call.respond(HttpStatusCode.OK)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            respondOkOrNotFound(SongService.deleteLink(linkId))
         }
     }
 }

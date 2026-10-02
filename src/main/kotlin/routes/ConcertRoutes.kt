@@ -47,21 +47,13 @@ fun Route.concertRoutes(storage: StorageService?) {
             requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
             val req = call.receive<UpdateConcertRequest>()
-            if (ConcertService.update(id, req.name, req.date)) {
-                call.respond(HttpStatusCode.OK)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            respondOkOrNotFound(ConcertService.update(id, req.name, req.date))
         }
 
         delete("/{id}") {
             requireRole("admin") ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
-            if (ConcertService.delete(id)) {
-                call.respond(HttpStatusCode.OK)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            respondOkOrNotFound(ConcertService.delete(id))
         }
 
         post("/{id}/duplicate") {
@@ -78,10 +70,7 @@ fun Route.concertRoutes(storage: StorageService?) {
 
         post("/{id}/image") {
             requireRole("admin") ?: return@post
-            if (storage == null) {
-                call.respond(HttpStatusCode.ServiceUnavailable, "Storage not configured")
-                return@post
-            }
+            val s = requireStorage(storage) ?: return@post
             val id = UUID.fromString(call.parameters["id"])
             val multipart = call.receiveMultipart()
             var fileBytes: ByteArray? = null
@@ -108,17 +97,14 @@ fun Route.concertRoutes(storage: StorageService?) {
 
             val extension = if (contentType.contains("png")) "png" else "jpg"
             val key = "concert-images/$id.$extension"
-            storage.upload(key, bytes, contentType)
+            s.upload(key, bytes, contentType)
             ConcertService.setImageUrl(id, key)
 
             call.respond(HttpStatusCode.OK, mapOf("key" to key))
         }
 
         get("/{id}/image") {
-            if (storage == null) {
-                call.respond(HttpStatusCode.ServiceUnavailable, "Storage not configured")
-                return@get
-            }
+            val s = requireStorage(storage) ?: return@get
             val id = UUID.fromString(call.parameters["id"])
             val key = ConcertService.getImageUrl(id)
             if (key == null) {
@@ -126,7 +112,7 @@ fun Route.concertRoutes(storage: StorageService?) {
                 return@get
             }
             val ct = if (key.endsWith(".png")) ContentType.Image.PNG else ContentType.Image.JPEG
-            val stream = storage.download(key)
+            val stream = s.download(key)
             call.respondOutputStream(ct) {
                 stream.use { it.copyTo(this) }
             }
@@ -134,17 +120,14 @@ fun Route.concertRoutes(storage: StorageService?) {
 
         delete("/{id}/image") {
             requireRole("admin") ?: return@delete
-            if (storage == null) {
-                call.respond(HttpStatusCode.ServiceUnavailable, "Storage not configured")
-                return@delete
-            }
+            val s = requireStorage(storage) ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
             val key = ConcertService.getImageUrl(id)
             if (key == null) {
                 call.respond(HttpStatusCode.NotFound)
                 return@delete
             }
-            storage.delete(key)
+            s.delete(key)
             ConcertService.setImageUrl(id, null)
             call.respond(HttpStatusCode.OK)
         }

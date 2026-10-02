@@ -84,22 +84,14 @@ fun Route.formationRoutes() {
         delete {
             requireRole("admin") ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
-            if (FormationService.delete(id)) {
-                call.respond(HttpStatusCode.OK)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            respondOkOrNotFound(FormationService.delete(id))
         }
 
         put("/name") {
             requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
             val req = call.receive<RenameFormationRequest>()
-            if (FormationService.rename(id, req.name)) {
-                call.respond(HttpStatusCode.OK)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            respondOkOrNotFound(FormationService.rename(id, req.name))
         }
 
         put("/placements") {

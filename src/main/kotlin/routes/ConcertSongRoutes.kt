@@ -44,20 +44,15 @@ fun Route.concertSongRoutes() {
 
         put("/reorder") {
             requireRole("admin") ?: return@put
-            val concertId = UUID.fromString(call.parameters["concertId"])
             val req = call.receive<ReorderConcertSongsRequest>()
-            ConcertSongService.reorder(concertId, req.concertSongIds.map { UUID.fromString(it) })
+            ConcertSongService.reorder(req.concertSongIds.map { UUID.fromString(it) })
             call.respond(HttpStatusCode.OK)
         }
 
         delete("/{id}") {
             requireRole("admin") ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
-            if (ConcertSongService.removeFromConcert(id)) {
-                call.respond(HttpStatusCode.OK)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            respondOkOrNotFound(ConcertSongService.removeFromConcert(id))
         }
     }
 
