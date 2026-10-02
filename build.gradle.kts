@@ -43,7 +43,7 @@ dependencies {
     // Database
     implementation("org.jetbrains.exposed:exposed-core:0.61.0")
     implementation("org.jetbrains.exposed:exposed-jdbc:0.61.0")
-    implementation("org.postgresql:postgresql:42.7.11")
+    implementation("org.postgresql:postgresql:42.7.12")
 
     // Migrations
     implementation("org.flywaydb:flyway-core:11.8.2")
@@ -55,7 +55,8 @@ dependencies {
     implementation("software.amazon.awssdk:url-connection-client")
 
     // Logging
-    implementation("ch.qos.logback:logback-classic:1.5.32")
+    implementation("ch.qos.logback:logback-classic:1.6.3")
+    implementation("ch.qos.logback:logback-core:1.6.3")
 
     // Test
     testImplementation(kotlin("test"))
