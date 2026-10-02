@@ -41,6 +41,25 @@ object Songs : Table("songs") {
     override val primaryKey = PrimaryKey(id)
 }
 
+object SongAudioFiles : Table("song_audio_files") {
+    val id = uuid("id").autoGenerate()
+    val songId = uuid("song_id").references(Songs.id)
+    val voicePartId = uuid("voice_part_id").references(VoiceParts.id).nullable()
+    val storageKey = varchar("storage_key", 512)
+    val fileName = varchar("file_name", 255)
+
+    override val primaryKey = PrimaryKey(id)
+}
+
+object SongLinks : Table("song_links") {
+    val id = uuid("id").autoGenerate()
+    val songId = uuid("song_id").references(Songs.id)
+    val url = varchar("url", 2048)
+    val label = varchar("label", 255).nullable()
+
+    override val primaryKey = PrimaryKey(id)
+}
+
 object ConcertSongs : Table("concert_songs") {
     val id = uuid("id").autoGenerate()
     val concertId = uuid("concert_id").references(Concerts.id)

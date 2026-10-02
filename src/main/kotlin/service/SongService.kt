@@ -2,7 +2,9 @@ package service
 
 import model.ConcertSongs
 import model.HiddenChorists
+import model.SongAudioFiles
 import model.SongFormations
+import model.SongLinks
 import model.Songs
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
@@ -110,6 +112,54 @@ object SongService {
             .distinctBy { it.first }
     }
 
+    // Audio files
+    data class AudioFileDTO(val id: UUID, val songId: UUID, val voicePartId: UUID?, val storageKey: String, val fileName: String)
+
+    fun listAudioFiles(songId: UUID): List<AudioFileDTO> = transaction {
+        SongAudioFiles.selectAll().where { SongAudioFiles.songId eq songId }
+            .map { AudioFileDTO(it[SongAudioFiles.id], it[SongAudioFiles.songId], it[SongAudioFiles.voicePartId], it[SongAudioFiles.storageKey], it[SongAudioFiles.fileName]) }
+    }
+
+    fun addAudioFile(songId: UUID, voicePartId: UUID?, storageKey: String, fileName: String): AudioFileDTO = transaction {
+        val id = SongAudioFiles.insert {
+            it[SongAudioFiles.songId] = songId
+            it[SongAudioFiles.voicePartId] = voicePartId
+            it[SongAudioFiles.storageKey] = storageKey
+            it[SongAudioFiles.fileName] = fileName
+        } get SongAudioFiles.id
+        AudioFileDTO(id, songId, voicePartId, storageKey, fileName)
+    }
+
+    fun getAudioFile(id: UUID): AudioFileDTO? = transaction {
+        SongAudioFiles.selectAll().where { SongAudioFiles.id eq id }
+            .firstOrNull()?.let { AudioFileDTO(it[SongAudioFiles.id], it[SongAudioFiles.songId], it[SongAudioFiles.voicePartId], it[SongAudioFiles.storageKey], it[SongAudioFiles.fileName]) }
+    }
+
+    fun deleteAudioFile(id: UUID): Boolean = transaction {
+        SongAudioFiles.deleteWhere { SongAudioFiles.id eq id } > 0
+    }
+
+    // Links
+    data class LinkDTO(val id: UUID, val songId: UUID, val url: String, val label: String?)
+
+    fun listLinks(songId: UUID): List<LinkDTO> = transaction {
+        SongLinks.selectAll().where { SongLinks.songId eq songId }
+            .map { LinkDTO(it[SongLinks.id], it[SongLinks.songId], it[SongLinks.url], it[SongLinks.label]) }
+    }
+
+    fun addLink(songId: UUID, url: String, label: String?): LinkDTO = transaction {
+        val id = SongLinks.insert {
+            it[SongLinks.songId] = songId
+            it[SongLinks.url] = url
+            it[SongLinks.label] = label
+        } get SongLinks.id
+        LinkDTO(id, songId, url, label)
+    }
+
+    fun deleteLink(id: UUID): Boolean = transaction {
+        SongLinks.deleteWhere { SongLinks.id eq id } > 0
+    }
+
     fun delete(id: UUID): Boolean = transaction {
         val songIds = ConcertSongs.selectAll()
             .where { ConcertSongs.songId eq id }
@@ -120,6 +170,8 @@ object SongService {
             SongFormations.deleteWhere { SongFormations.concertSongId eq sId }
         }
         ConcertSongs.deleteWhere { ConcertSongs.songId eq id }
+        SongAudioFiles.deleteWhere { SongAudioFiles.songId eq id }
+        SongLinks.deleteWhere { SongLinks.songId eq id }
         Songs.deleteWhere { Songs.id eq id } > 0
     }
 }

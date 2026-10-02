@@ -199,5 +199,118 @@ fun Route.songRoutes(storage: StorageService?) {
             SongService.setSheetMusicKey(id, null)
             call.respond(HttpStatusCode.OK)
         }
+        // Audio files (stämfiler)
+        get("/{id}/audio-files") {
+            val id = UUID.fromString(call.parameters["id"])
+            val files = SongService.listAudioFiles(id).map {
+                mapOf("id" to it.id.toString(), "voicePartId" to it.voicePartId?.toString(), "fileName" to it.fileName)
+            }
+            call.respond(files)
+        }
+
+        post("/{id}/audio-files") {
+            requireRole("admin") ?: return@post
+            if (storage == null) {
+                call.respond(HttpStatusCode.ServiceUnavailable, "Storage not configured")
+                return@post
+            }
+            val songId = UUID.fromString(call.parameters["id"])
+            val multipart = call.receiveMultipart()
+            var fileBytes: ByteArray? = null
+            var fileName = "audio.mp3"
+            var voicePartId: String? = null
+            var contentType = "audio/mpeg"
+
+            multipart.forEachPart { part ->
+                when (part) {
+                    is PartData.FileItem -> if (part.name == "file") {
+                        fileBytes = part.provider().toByteArray()
+                        fileName = part.originalFileName ?: "audio.mp3"
+                        contentType = part.contentType?.toString() ?: "audio/mpeg"
+                    }
+                    is PartData.FormItem -> if (part.name == "voicePartId") {
+                        voicePartId = part.value.takeIf { it.isNotBlank() }
+                    }
+                    else -> {}
+                }
+                part.dispose()
+            }
+
+            val bytes = fileBytes
+            if (bytes == null) {
+                call.respond(HttpStatusCode.BadRequest, "No file provided")
+                return@post
+            }
+
+            val vpId = voicePartId?.let { UUID.fromString(it) }
+            val key = "stamfiler/$songId/${UUID.randomUUID()}"
+            storage.upload(key, bytes, contentType)
+            val dto = SongService.addAudioFile(songId, vpId, key, fileName)
+            call.respond(HttpStatusCode.Created, mapOf("id" to dto.id.toString(), "voicePartId" to dto.voicePartId?.toString(), "fileName" to dto.fileName))
+        }
+
+        delete("/audio-files/{fileId}") {
+            requireRole("admin") ?: return@delete
+            if (storage == null) {
+                call.respond(HttpStatusCode.ServiceUnavailable, "Storage not configured")
+                return@delete
+            }
+            val fileId = UUID.fromString(call.parameters["fileId"])
+            val file = SongService.getAudioFile(fileId)
+            if (file == null) {
+                call.respond(HttpStatusCode.NotFound)
+                return@delete
+            }
+            storage.delete(file.storageKey)
+            SongService.deleteAudioFile(fileId)
+            call.respond(HttpStatusCode.OK)
+        }
+
+        get("/audio-files/{fileId}/stream") {
+            if (storage == null) {
+                call.respond(HttpStatusCode.ServiceUnavailable, "Storage not configured")
+                return@get
+            }
+            val fileId = UUID.fromString(call.parameters["fileId"])
+            val file = SongService.getAudioFile(fileId)
+            if (file == null) {
+                call.respond(HttpStatusCode.NotFound)
+                return@get
+            }
+            val stream = storage.download(file.storageKey)
+            val ct = if (file.fileName.endsWith(".wav")) ContentType.Audio.Any
+                     else ContentType("audio", "mpeg")
+            call.respondOutputStream(ct) {
+                stream.use { it.copyTo(this) }
+            }
+        }
+
+        // Song links (YouTube, Spotify, etc.)
+        get("/{id}/links") {
+            val id = UUID.fromString(call.parameters["id"])
+            val links = SongService.listLinks(id).map {
+                mapOf("id" to it.id.toString(), "url" to it.url, "label" to it.label)
+            }
+            call.respond(links)
+        }
+
+        post("/{id}/links") {
+            requireRole("admin") ?: return@post
+            val songId = UUID.fromString(call.parameters["id"])
+            @Serializable data class AddLinkRequest(val url: String, val label: String? = null)
+            val req = call.receive<AddLinkRequest>()
+            val dto = SongService.addLink(songId, req.url, req.label)
+            call.respond(HttpStatusCode.Created, mapOf("id" to dto.id.toString(), "url" to dto.url, "label" to dto.label))
+        }
+
+        delete("/links/{linkId}") {
+            requireRole("admin") ?: return@delete
+            val linkId = UUID.fromString(call.parameters["linkId"])
+            if (SongService.deleteLink(linkId)) {
+                call.respond(HttpStatusCode.OK)
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
+        }
     }
 }
