@@ -24,6 +24,7 @@ object Songs : Table("songs") {
     val name = varchar("name", 255)
     val composer = varchar("composer", 255).nullable()
     val arranger = varchar("arranger", 255).nullable()
+    val lyricist = varchar("lyricist", 255).nullable()
     val delning = varchar("delning", 255).nullable()
     val languages = varchar("languages", 500).nullable()  // comma-separated
     val length = varchar("length", 10).nullable()          // "MM:SS" or "MM"
@@ -35,6 +36,7 @@ object Songs : Table("songs") {
     val soloistNames = varchar("soloist_names", 500).nullable()
     val hasSheetMusic = bool("has_sheet_music").default(false)
     val sheetMusicKey = varchar("sheet_music_key", 512).nullable()
+    val lyrics = text("lyrics").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

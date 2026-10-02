@@ -18,6 +18,7 @@ data class SongDTO(
     val name: String,
     val composer: String?,
     val arranger: String?,
+    val lyricist: String?,
     val delning: String?,
     val languages: String?,
     val length: String?,
@@ -29,6 +30,7 @@ data class SongDTO(
     val soloistNames: String?,
     val hasSheetMusic: Boolean,
     val sheetMusicKey: String?,
+    val lyrics: String?,
 )
 
 object SongService {
@@ -38,6 +40,7 @@ object SongService {
         name = row[Songs.name],
         composer = row[Songs.composer],
         arranger = row[Songs.arranger],
+        lyricist = row[Songs.lyricist],
         delning = row[Songs.delning],
         languages = row[Songs.languages],
         length = row[Songs.length],
@@ -49,6 +52,7 @@ object SongService {
         soloistNames = row[Songs.soloistNames],
         hasSheetMusic = row[Songs.hasSheetMusic],
         sheetMusicKey = row[Songs.sheetMusicKey],
+        lyrics = row[Songs.lyrics],
     )
 
     fun list(): List<SongDTO> = transaction {
@@ -60,16 +64,18 @@ object SongService {
             it[Songs.name] = name
         } get Songs.id
 
-        SongDTO(id, name, null, null, null, null, null, null, null, null, null, null, null, false, null)
+        SongDTO(id, name, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null)
     }
 
-    fun update(id: UUID, name: String, composer: String?, arranger: String?, delning: String?,
+    fun update(id: UUID, name: String, composer: String?, arranger: String?, lyricist: String?, delning: String?,
                languages: String?, length: String?, accompanied: Boolean?, instrument: String?,
-               year: Int?, collectionName: String?, hasSoloists: Boolean?, soloistNames: String?, hasSheetMusic: Boolean): Boolean = transaction {
+               year: Int?, collectionName: String?, hasSoloists: Boolean?, soloistNames: String?, hasSheetMusic: Boolean,
+               lyrics: String?): Boolean = transaction {
         Songs.update({ Songs.id eq id }) {
             it[Songs.name] = name
             it[Songs.composer] = composer
             it[Songs.arranger] = arranger
+            it[Songs.lyricist] = lyricist
             it[Songs.delning] = delning
             it[Songs.languages] = languages
             it[Songs.length] = length
@@ -80,6 +86,7 @@ object SongService {
             it[Songs.hasSoloists] = hasSoloists
             it[Songs.soloistNames] = soloistNames
             it[Songs.hasSheetMusic] = hasSheetMusic
+            it[Songs.lyrics] = lyrics
         } > 0
     }
 

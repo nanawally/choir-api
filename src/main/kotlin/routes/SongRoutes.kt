@@ -20,6 +20,7 @@ data class UpdateSongRequest(
     val name: String,
     val composer: String? = null,
     val arranger: String? = null,
+    val lyricist: String? = null,
     val delning: String? = null,
     val languages: String? = null,
     val length: String? = null,
@@ -30,6 +31,7 @@ data class UpdateSongRequest(
     val hasSoloists: Boolean? = null,
     val soloistNames: String? = null,
     val hasSheetMusic: Boolean = false,
+    val lyrics: String? = null,
 )
 
 @Serializable
@@ -38,6 +40,7 @@ data class SongResponse(
     val name: String,
     val composer: String? = null,
     val arranger: String? = null,
+    val lyricist: String? = null,
     val delning: String? = null,
     val languages: String? = null,
     val length: String? = null,
@@ -49,6 +52,7 @@ data class SongResponse(
     val soloistNames: String? = null,
     val hasSheetMusic: Boolean = false,
     val hasSheetMusicFile: Boolean = false,
+    val lyrics: String? = null,
 )
 
 private fun toResponse(dto: service.SongDTO) = SongResponse(
@@ -56,6 +60,7 @@ private fun toResponse(dto: service.SongDTO) = SongResponse(
     name = dto.name,
     composer = dto.composer,
     arranger = dto.arranger,
+    lyricist = dto.lyricist,
     delning = dto.delning,
     languages = dto.languages,
     length = dto.length,
@@ -67,6 +72,7 @@ private fun toResponse(dto: service.SongDTO) = SongResponse(
     soloistNames = dto.soloistNames,
     hasSheetMusic = dto.hasSheetMusic,
     hasSheetMusicFile = dto.sheetMusicKey != null,
+    lyrics = dto.lyrics,
 )
 
 fun Route.songRoutes(storage: StorageService?) {
@@ -96,9 +102,10 @@ fun Route.songRoutes(storage: StorageService?) {
             requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
             val req = call.receive<UpdateSongRequest>()
-            if (SongService.update(id, req.name, req.composer, req.arranger, req.delning,
+            if (SongService.update(id, req.name, req.composer, req.arranger, req.lyricist, req.delning,
                     req.languages, req.length, req.accompanied, req.instrument,
-                    req.year, req.collectionName, req.hasSoloists, req.soloistNames, req.hasSheetMusic)) {
+                    req.year, req.collectionName, req.hasSoloists, req.soloistNames, req.hasSheetMusic,
+                    req.lyrics)) {
                 call.respond(HttpStatusCode.OK)
             } else {
                 call.respond(HttpStatusCode.NotFound)
