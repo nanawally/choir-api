@@ -1,27 +1,18 @@
 import io.ktor.server.application.*
-import model.Chorists
-import model.ConcertChorists
-import model.ConcertSongs
-import model.Concerts
-import model.Formations
-import model.HiddenChorists
-import model.Placements
-import model.SongAudioFiles
-import model.SongFormations
-import model.SongLinks
-import model.Songs
-import model.Users
-import model.VoiceAssignments
-import model.VoiceGroups
-import model.VoiceParts
+import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.transactions.transaction
 
 fun Application.configureDatabase() {
     val url = environment.config.property("database.url").getString()
     val user = environment.config.property("database.user").getString()
     val password = environment.config.property("database.password").getString()
+
+    Flyway.configure()
+        .dataSource(url, user, password)
+        .baselineOnMigrate(true)   // stamps existing DB at V1 without running the migration
+        .baselineVersion("1")
+        .load()
+        .migrate()
 
     Database.connect(
         url = url,
@@ -29,11 +20,4 @@ fun Application.configureDatabase() {
         user = user,
         password = password,
     )
-
-    transaction {
-        SchemaUtils.createMissingTablesAndColumns(
-            Chorists, Concerts, ConcertChorists, ConcertSongs, Formations, HiddenChorists, Placements,
-            Songs, SongAudioFiles, SongLinks, SongFormations, Users, VoiceGroups, VoiceParts, VoiceAssignments
-        )
-    }
 }
