@@ -53,6 +53,7 @@ fun Application.module() {
             concertChoristRoutes()
             concertSongRoutes()
             songRoutes(storage)
+            songbookRoutes(storage)
             formationRoutes()
             songFormationRoutes()
             voiceGroupRoutes()
