@@ -1,0 +1,3 @@
+ALTER TABLE chorists ADD COLUMN notes TEXT NULL;
+
+ALTER TABLE songs ADD COLUMN soloist_reservs VARCHAR(500) NULL;

@@ -15,6 +15,7 @@ data class ChoristDTO(
     val lastName: String,
     val isSectionLeader: Boolean,
     val isArchived: Boolean,
+    val notes: String?,
 )
 
 object ChoristService {
@@ -29,6 +30,7 @@ object ChoristService {
                     it[Chorists.lastName],
                     it[Chorists.isSectionLeader],
                     it[Chorists.isArchived],
+                    it[Chorists.notes],
                 )
             }
     }
@@ -40,14 +42,15 @@ object ChoristService {
             it[Chorists.isSectionLeader] = isSectionLeader
         } get Chorists.id
 
-        ChoristDTO(id, firstName, lastName, isSectionLeader, false)
+        ChoristDTO(id, firstName, lastName, isSectionLeader, false, null)
     }
 
-    fun update(id: UUID, firstName: String, lastName: String, isSectionLeader: Boolean): Boolean = transaction {
+    fun update(id: UUID, firstName: String, lastName: String, isSectionLeader: Boolean, notes: String?): Boolean = transaction {
         Chorists.update({ Chorists.id eq id }) {
             it[Chorists.firstName] = firstName
             it[Chorists.lastName] = lastName
             it[Chorists.isSectionLeader] = isSectionLeader
+            it[Chorists.notes] = notes
         } > 0
     }
 

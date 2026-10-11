@@ -34,6 +34,7 @@ object Songs : Table("songs") {
     val collectionName = varchar("collection_name", 255).nullable()
     val hasSoloists = bool("has_soloists").nullable()
     val soloistNames = varchar("soloist_names", 500).nullable()
+    val soloistReservs = varchar("soloist_reservs", 500).nullable()
     val hasSheetMusic = bool("has_sheet_music").default(false)
     val sheetMusicKey = varchar("sheet_music_key", 512).nullable()
     val lyrics = text("lyrics").nullable()

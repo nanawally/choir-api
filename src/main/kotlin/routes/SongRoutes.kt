@@ -30,6 +30,7 @@ data class UpdateSongRequest(
     val collectionName: String? = null,
     val hasSoloists: Boolean? = null,
     val soloistNames: String? = null,
+    val soloistReservs: String? = null,
     val hasSheetMusic: Boolean = false,
     val lyrics: String? = null,
 )
@@ -50,6 +51,7 @@ data class SongResponse(
     val collectionName: String? = null,
     val hasSoloists: Boolean? = null,
     val soloistNames: String? = null,
+    val soloistReservs: String? = null,
     val hasSheetMusic: Boolean = false,
     val hasSheetMusicFile: Boolean = false,
     val lyrics: String? = null,
@@ -70,6 +72,7 @@ private fun toResponse(dto: service.SongDTO) = SongResponse(
     collectionName = dto.collectionName,
     hasSoloists = dto.hasSoloists,
     soloistNames = dto.soloistNames,
+    soloistReservs = dto.soloistReservs,
     hasSheetMusic = dto.hasSheetMusic,
     hasSheetMusicFile = dto.sheetMusicKey != null,
     lyrics = dto.lyrics,
@@ -104,8 +107,8 @@ fun Route.songRoutes(storage: StorageService?) {
             val req = call.receive<UpdateSongRequest>()
             respondOkOrNotFound(SongService.update(id, req.name, req.composer, req.arranger, req.lyricist, req.delning,
                 req.languages, req.length, req.accompanied, req.instrument,
-                req.year, req.collectionName, req.hasSoloists, req.soloistNames, req.hasSheetMusic,
-                req.lyrics))
+                req.year, req.collectionName, req.hasSoloists, req.soloistNames, req.soloistReservs,
+                req.hasSheetMusic, req.lyrics))
         }
 
         delete("/{id}") {

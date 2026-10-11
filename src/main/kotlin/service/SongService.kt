@@ -30,6 +30,7 @@ data class SongDTO(
     val collectionName: String?,
     val hasSoloists: Boolean?,
     val soloistNames: String?,
+    val soloistReservs: String?,
     val hasSheetMusic: Boolean,
     val sheetMusicKey: String?,
     val lyrics: String?,
@@ -52,6 +53,7 @@ object SongService {
         collectionName = row[Songs.collectionName],
         hasSoloists = row[Songs.hasSoloists],
         soloistNames = row[Songs.soloistNames],
+        soloistReservs = row[Songs.soloistReservs],
         hasSheetMusic = row[Songs.hasSheetMusic],
         sheetMusicKey = row[Songs.sheetMusicKey],
         lyrics = row[Songs.lyrics],
@@ -66,13 +68,13 @@ object SongService {
             it[Songs.name] = name
         } get Songs.id
 
-        SongDTO(id, name, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null)
+        SongDTO(id, name, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null)
     }
 
     fun update(id: UUID, name: String, composer: String?, arranger: String?, lyricist: String?, delning: String?,
                languages: String?, length: String?, accompanied: Boolean?, instrument: String?,
-               year: Int?, collectionName: String?, hasSoloists: Boolean?, soloistNames: String?, hasSheetMusic: Boolean,
-               lyrics: String?): Boolean = transaction {
+               year: Int?, collectionName: String?, hasSoloists: Boolean?, soloistNames: String?, soloistReservs: String?,
+               hasSheetMusic: Boolean, lyrics: String?): Boolean = transaction {
         Songs.update({ Songs.id eq id }) {
             it[Songs.name] = name
             it[Songs.composer] = composer
@@ -87,6 +89,7 @@ object SongService {
             it[Songs.collectionName] = collectionName
             it[Songs.hasSoloists] = hasSoloists
             it[Songs.soloistNames] = soloistNames
+            it[Songs.soloistReservs] = soloistReservs
             it[Songs.hasSheetMusic] = hasSheetMusic
             it[Songs.lyrics] = lyrics
         } > 0

@@ -13,17 +13,17 @@ import java.util.UUID
 data class CreateChoristRequest(val firstName: String, val lastName: String, val isSectionLeader: Boolean = false)
 
 @Serializable
-data class UpdateChoristRequest(val firstName: String, val lastName: String, val isSectionLeader: Boolean = false)
+data class UpdateChoristRequest(val firstName: String, val lastName: String, val isSectionLeader: Boolean = false, val notes: String? = null)
 
 @Serializable
-data class ChoristResponse(val id: String, val firstName: String, val lastName: String, val isSectionLeader: Boolean, val isArchived: Boolean)
+data class ChoristResponse(val id: String, val firstName: String, val lastName: String, val isSectionLeader: Boolean, val isArchived: Boolean, val notes: String? = null)
 
 fun Route.choristRoutes() {
     route("/chorists") {
         get {
             val includeArchived = call.request.queryParameters["includeArchived"] == "true"
             val chorists = ChoristService.list(includeArchived).map {
-                ChoristResponse(it.id.toString(), it.firstName, it.lastName, it.isSectionLeader, it.isArchived)
+                ChoristResponse(it.id.toString(), it.firstName, it.lastName, it.isSectionLeader, it.isArchived, it.notes)
             }
             call.respond(chorists)
         }
@@ -33,7 +33,7 @@ fun Route.choristRoutes() {
             val req = call.receive<CreateChoristRequest>()
             val chorist = ChoristService.create(req.firstName, req.lastName, req.isSectionLeader)
             call.respond(HttpStatusCode.Created, ChoristResponse(
-                chorist.id.toString(), chorist.firstName, chorist.lastName, chorist.isSectionLeader, chorist.isArchived,
+                chorist.id.toString(), chorist.firstName, chorist.lastName, chorist.isSectionLeader, chorist.isArchived, chorist.notes,
             ))
         }
 
@@ -41,7 +41,7 @@ fun Route.choristRoutes() {
             requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
             val req = call.receive<UpdateChoristRequest>()
-            respondOkOrNotFound(ChoristService.update(id, req.firstName, req.lastName, req.isSectionLeader))
+            respondOkOrNotFound(ChoristService.update(id, req.firstName, req.lastName, req.isSectionLeader, req.notes))
         }
 
         put("/{id}/archive") {
