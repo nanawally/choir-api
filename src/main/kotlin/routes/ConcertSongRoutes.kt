@@ -16,7 +16,7 @@ data class AddSongToConcertRequest(val songId: String)
 data class ReorderConcertSongsRequest(val concertSongIds: List<String>)
 
 @Serializable
-data class ConcertSongResponse(val id: String, val name: String, val sortOrder: Int)
+data class ConcertSongResponse(val id: String, val songId: String, val name: String, val sortOrder: Int)
 
 @Serializable
 data class HiddenChoristRequest(val choristIds: List<String>)
@@ -27,7 +27,7 @@ fun Route.concertSongRoutes() {
         get {
             val concertId = UUID.fromString(call.parameters["concertId"])
             val songs = ConcertSongService.listByConcert(concertId)
-                .map { ConcertSongResponse(it.id.toString(), it.name, it.sortOrder) }
+                .map { ConcertSongResponse(it.id.toString(), it.songId.toString(), it.name, it.sortOrder) }
             call.respond(songs)
         }
 
@@ -38,7 +38,7 @@ fun Route.concertSongRoutes() {
             val song = ConcertSongService.addToConcert(concertId, UUID.fromString(req.songId))
             call.respond(
                 HttpStatusCode.Created,
-                ConcertSongResponse(song.id.toString(), song.name, song.sortOrder)
+                ConcertSongResponse(song.id.toString(), song.songId.toString(), song.name, song.sortOrder)
             )
         }
 

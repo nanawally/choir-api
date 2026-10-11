@@ -12,7 +12,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import java.util.*
 
-data class ConcertSongDTO(val id: UUID, val name: String, val sortOrder: Int)
+data class ConcertSongDTO(val id: UUID, val songId: UUID, val name: String, val sortOrder: Int)
 
 object ConcertSongService {
 
@@ -24,7 +24,7 @@ object ConcertSongService {
                 val song = Songs.selectAll()
                     .where { Songs.id eq it[ConcertSongs.songId] }
                     .first()
-                ConcertSongDTO(it[ConcertSongs.id], song[Songs.name], it[ConcertSongs.sortOrder])
+                ConcertSongDTO(it[ConcertSongs.id], it[ConcertSongs.songId], song[Songs.name], it[ConcertSongs.sortOrder])
             }
     }
 
@@ -44,7 +44,7 @@ object ConcertSongService {
             .map { it[Songs.name] }
             .first()
 
-        ConcertSongDTO(id, name, max + 1)
+        ConcertSongDTO(id, songId, name, max + 1)
     }
 
     fun removeFromConcert(concertSongId: UUID): Boolean = transaction {
