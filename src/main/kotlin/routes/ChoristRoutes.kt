@@ -2,6 +2,8 @@ package routes
 
 import auth.requireRole
 import io.ktor.http.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -22,8 +24,10 @@ fun Route.choristRoutes() {
     route("/chorists") {
         get {
             val includeArchived = call.request.queryParameters["includeArchived"] == "true"
+            val isAdmin = call.principal<JWTPrincipal>()?.payload?.getClaim("role")?.asString() == "admin"
             val chorists = ChoristService.list(includeArchived).map {
-                ChoristResponse(it.id.toString(), it.firstName, it.lastName, it.isSectionLeader, it.isArchived, it.notes)
+                ChoristResponse(it.id.toString(), it.firstName, it.lastName, it.isSectionLeader, it.isArchived,
+                    notes = if (isAdmin) it.notes else null)
             }
             call.respond(chorists)
         }
