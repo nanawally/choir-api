@@ -1,12 +1,13 @@
 package routes
 
+import auth.extractChoirId
 import auth.requireRole
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.request.*
-import io.ktor.utils.io.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.utils.io.*
 import kotlinx.serialization.Serializable
 import service.SongbookService
 import service.StorageService
@@ -55,7 +56,8 @@ data class SongbookSongResponse(
 fun Route.songbookRoutes(storage: StorageService?) {
     route("/songbooks") {
         get {
-            val songbooks = SongbookService.list().map {
+            val choirId = extractChoirId()
+            val songbooks = SongbookService.list(choirId).map {
                 SongbookResponse(it.id.toString(), it.name, it.date, it.imageUrl, it.isPinned)
             }
             call.respond(songbooks)
@@ -63,8 +65,9 @@ fun Route.songbookRoutes(storage: StorageService?) {
 
         post {
             requireRole("admin") ?: return@post
+            val choirId = extractChoirId()
             val req = call.receive<CreateSongbookRequest>()
-            val songbook = SongbookService.create(req.name, req.date, req.isPinned)
+            val songbook = SongbookService.create(choirId, req.name, req.date, req.isPinned)
             call.respond(
                 HttpStatusCode.Created,
                 SongbookResponse(songbook.id.toString(), songbook.name, songbook.date, songbook.imageUrl, songbook.isPinned)
@@ -74,21 +77,24 @@ fun Route.songbookRoutes(storage: StorageService?) {
         put("/{id}") {
             requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
+            val choirId = extractChoirId()
             val req = call.receive<UpdateSongbookRequest>()
-            respondOkOrNotFound(SongbookService.update(id, req.name, req.date, req.isPinned))
+            respondOkOrNotFound(SongbookService.update(id, choirId, req.name, req.date, req.isPinned))
         }
 
         delete("/{id}") {
             requireRole("admin") ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
-            respondOkOrNotFound(SongbookService.delete(id))
+            val choirId = extractChoirId()
+            respondOkOrNotFound(SongbookService.delete(id, choirId))
         }
 
         post("/{id}/duplicate") {
             requireRole("admin") ?: return@post
             val id = UUID.fromString(call.parameters["id"])
+            val choirId = extractChoirId()
             val req = call.receive<DuplicateSongbookRequest>()
-            val songbook = SongbookService.duplicate(id, req.name)
+            val songbook = SongbookService.duplicate(id, choirId, req.name)
             if (songbook != null) {
                 call.respond(HttpStatusCode.Created, SongbookResponse(songbook.id.toString(), songbook.name, songbook.date, songbook.imageUrl, songbook.isPinned))
             } else {

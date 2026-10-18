@@ -1,25 +1,24 @@
 package service
 
 import model.*
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.jetbrains.exposed.sql.update
 import java.util.*
 
 data class ConcertDTO(val id: UUID, val name: String, val date: String?, val imageUrl: String?)
 
 object ConcertService {
 
-    fun list(): List<ConcertDTO> = transaction {
+    fun list(choirId: UUID): List<ConcertDTO> = transaction {
         Concerts.selectAll()
+            .where { Concerts.choirId eq choirId }
             .map { ConcertDTO(it[Concerts.id], it[Concerts.name], it[Concerts.date], it[Concerts.imageUrl]) }
     }
 
-    fun create(name: String, date: String?): ConcertDTO = transaction {
+    fun create(choirId: UUID, name: String, date: String?): ConcertDTO = transaction {
         val id = Concerts.insert {
+            it[Concerts.choirId] = choirId
             it[Concerts.name] = name
             it[Concerts.date] = date
         } get Concerts.id
@@ -27,34 +26,39 @@ object ConcertService {
         ConcertDTO(id, name, date, null)
     }
 
-    fun update(id: UUID, name: String, date: String?): Boolean = transaction {
-        Concerts.update({ Concerts.id eq id }) {
+    fun update(id: UUID, choirId: UUID, name: String, date: String?): Boolean = transaction {
+        Concerts.update({ (Concerts.id eq id) and (Concerts.choirId eq choirId) }) {
             it[Concerts.name] = name
             it[Concerts.date] = date
         } > 0
     }
 
-    fun delete(id: UUID): Boolean = transaction {
-        val songIds = ConcertSongs.selectAll() // find every song belonging to this concert
+    fun delete(id: UUID, choirId: UUID): Boolean = transaction {
+        val exists = Concerts.selectAll()
+            .where { (Concerts.id eq id) and (Concerts.choirId eq choirId) }
+            .count() > 0
+        if (!exists) return@transaction false
+
+        val songIds = ConcertSongs.selectAll()
             .where { ConcertSongs.concertId eq id }
             .map { it[ConcertSongs.id] }
 
-        songIds.forEach { sId -> // delete rows that depend on songIds
+        songIds.forEach { sId ->
             HiddenChorists.deleteWhere { HiddenChorists.concertSongId eq sId }
             SongFormations.deleteWhere { SongFormations.concertSongId eq sId }
         }
-        ConcertSongs.deleteWhere { ConcertSongs.concertId eq id } // delete songs in the concert
+        ConcertSongs.deleteWhere { ConcertSongs.concertId eq id }
 
-        val formationIds = Formations.selectAll() // find every formation belonging to this concert
+        val formationIds = Formations.selectAll()
             .where { Formations.concertId eq id }
             .map { it[Formations.id] }
 
-        formationIds.forEach { fId -> // delete all Placement rows whose formationId matches this formation
+        formationIds.forEach { fId ->
             Placements.deleteWhere { formationId eq fId }
         }
-        Formations.deleteWhere { concertId eq id } // delete all formations whose concertId matches this concert
-        ConcertChorists.deleteWhere { concertId eq id } // delete everyone in the roster for this concert
-        Concerts.deleteWhere { Concerts.id eq id } > 0 // > 0 turns delete count into a boolean, returns true if a concert was deleted
+        Formations.deleteWhere { concertId eq id }
+        ConcertChorists.deleteWhere { concertId eq id }
+        Concerts.deleteWhere { (Concerts.id eq id) and (Concerts.choirId eq choirId) } > 0
     }
 
     fun getImageUrl(id: UUID): String? = transaction {
@@ -68,12 +72,13 @@ object ConcertService {
         }
     }
 
-    fun duplicate(id: UUID, newName: String): ConcertDTO? = transaction {
+    fun duplicate(id: UUID, choirId: UUID, newName: String): ConcertDTO? = transaction {
         val original = Concerts.selectAll()
-            .where { Concerts.id eq id }
+            .where { (Concerts.id eq id) and (Concerts.choirId eq choirId) }
             .firstOrNull() ?: return@transaction null
 
         val newConcertId = Concerts.insert {
+            it[Concerts.choirId] = choirId
             it[name] = newName
             it[date] = original[Concerts.date]
             it[imageUrl] = original[Concerts.imageUrl]

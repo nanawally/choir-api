@@ -1,12 +1,13 @@
 package routes
 
+import auth.extractChoirId
 import auth.requireRole
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.request.*
-import io.ktor.utils.io.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.utils.io.*
 import kotlinx.serialization.Serializable
 import service.ConcertService
 import service.StorageService
@@ -27,7 +28,8 @@ data class ConcertResponse(val id: String, val name: String, val date: String? =
 fun Route.concertRoutes(storage: StorageService?) {
     route("/concerts") {
         get {
-            val concerts = ConcertService.list().map {
+            val choirId = extractChoirId()
+            val concerts = ConcertService.list(choirId).map {
                 ConcertResponse(it.id.toString(), it.name, it.date, it.imageUrl)
             }
             call.respond(concerts)
@@ -35,8 +37,9 @@ fun Route.concertRoutes(storage: StorageService?) {
 
         post {
             requireRole("admin") ?: return@post
+            val choirId = extractChoirId()
             val req = call.receive<CreateConcertRequest>()
-            val concert = ConcertService.create(req.name, req.date)
+            val concert = ConcertService.create(choirId, req.name, req.date)
             call.respond(
                 HttpStatusCode.Created,
                 ConcertResponse(concert.id.toString(), concert.name, concert.date, concert.imageUrl)
@@ -46,21 +49,24 @@ fun Route.concertRoutes(storage: StorageService?) {
         put("/{id}") {
             requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
+            val choirId = extractChoirId()
             val req = call.receive<UpdateConcertRequest>()
-            respondOkOrNotFound(ConcertService.update(id, req.name, req.date))
+            respondOkOrNotFound(ConcertService.update(id, choirId, req.name, req.date))
         }
 
         delete("/{id}") {
             requireRole("admin") ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
-            respondOkOrNotFound(ConcertService.delete(id))
+            val choirId = extractChoirId()
+            respondOkOrNotFound(ConcertService.delete(id, choirId))
         }
 
         post("/{id}/duplicate") {
             requireRole("admin") ?: return@post
             val id = UUID.fromString(call.parameters["id"])
+            val choirId = extractChoirId()
             val req = call.receive<DuplicateConcertRequest>()
-            val concert = ConcertService.duplicate(id, req.name)
+            val concert = ConcertService.duplicate(id, choirId, req.name)
             if (concert != null) {
                 call.respond(HttpStatusCode.Created, ConcertResponse(concert.id.toString(), concert.name, concert.date, concert.imageUrl))
             } else {

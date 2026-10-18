@@ -20,6 +20,7 @@ object AuthService {
         return JwtConfig.generateToken(
             userId = user[Users.id].toString(),
             role = user[Users.role],
+            choirId = user[Users.choirId].toString(),
             secret = jwtSecret,
             issuer = jwtIssuer,
             audience = jwtAudience,

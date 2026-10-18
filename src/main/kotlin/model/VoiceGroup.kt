@@ -7,6 +7,7 @@ object VoiceGroups : Table("voice_groups") {
     val id = uuid("id").autoGenerate()
     val name = varchar("name", 255)
     val isStandard = bool("is_standard").default(false)
+    val choirId = uuid("choir_id").references(Choirs.id)
 
     override val primaryKey = PrimaryKey(id)
 }

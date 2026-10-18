@@ -1,6 +1,8 @@
 package service
 
-import model.*
+import model.SongbookSongs
+import model.Songbooks
+import model.Songs
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -37,14 +39,15 @@ data class SongbookSongDTO(
 
 object SongbookService {
 
-    fun list(): List<SongbookDTO> = transaction {
-        Songbooks.selectAll().map {
-            SongbookDTO(it[Songbooks.id], it[Songbooks.name], it[Songbooks.date], it[Songbooks.imageUrl], it[Songbooks.isPinned])
-        }
+    fun list(choirId: UUID): List<SongbookDTO> = transaction {
+        Songbooks.selectAll()
+            .where { Songbooks.choirId eq choirId }
+            .map { SongbookDTO(it[Songbooks.id], it[Songbooks.name], it[Songbooks.date], it[Songbooks.imageUrl], it[Songbooks.isPinned]) }
     }
 
-    fun create(name: String, date: String?, isPinned: Boolean): SongbookDTO = transaction {
+    fun create(choirId: UUID, name: String, date: String?, isPinned: Boolean): SongbookDTO = transaction {
         val id = Songbooks.insert {
+            it[Songbooks.choirId] = choirId
             it[Songbooks.name] = name
             it[Songbooks.date] = date
             it[Songbooks.isPinned] = isPinned
@@ -52,17 +55,17 @@ object SongbookService {
         SongbookDTO(id, name, date, null, isPinned)
     }
 
-    fun update(id: UUID, name: String, date: String?, isPinned: Boolean): Boolean = transaction {
-        Songbooks.update({ Songbooks.id eq id }) {
+    fun update(id: UUID, choirId: UUID, name: String, date: String?, isPinned: Boolean): Boolean = transaction {
+        Songbooks.update({ (Songbooks.id eq id) and (Songbooks.choirId eq choirId) }) {
             it[Songbooks.name] = name
             it[Songbooks.date] = date
             it[Songbooks.isPinned] = isPinned
         } > 0
     }
 
-    fun delete(id: UUID): Boolean = transaction {
+    fun delete(id: UUID, choirId: UUID): Boolean = transaction {
         SongbookSongs.deleteWhere { SongbookSongs.songbookId eq id }
-        Songbooks.deleteWhere { Songbooks.id eq id } > 0
+        Songbooks.deleteWhere { (Songbooks.id eq id) and (Songbooks.choirId eq choirId) } > 0
     }
 
     fun getImageUrl(id: UUID): String? = transaction {
@@ -73,10 +76,12 @@ object SongbookService {
         Songbooks.update({ Songbooks.id eq id }) { it[imageUrl] = url }
     }
 
-    fun duplicate(id: UUID, newName: String): SongbookDTO? = transaction {
-        val original = Songbooks.selectAll().where { Songbooks.id eq id }.firstOrNull()
-            ?: return@transaction null
+    fun duplicate(id: UUID, choirId: UUID, newName: String): SongbookDTO? = transaction {
+        val original = Songbooks.selectAll()
+            .where { (Songbooks.id eq id) and (Songbooks.choirId eq choirId) }
+            .firstOrNull() ?: return@transaction null
         val newId = Songbooks.insert {
+            it[Songbooks.choirId] = choirId
             it[name] = newName
             it[date] = original[Songbooks.date]
             it[imageUrl] = original[Songbooks.imageUrl]

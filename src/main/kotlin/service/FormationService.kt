@@ -4,12 +4,9 @@ import model.ConcertChorists
 import model.Formations
 import model.Placements
 import model.SongFormations
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.jetbrains.exposed.sql.update
 import java.util.*
 
 data class FormationDTO(val id: UUID, val name: String, val rowSizes: String)
@@ -133,15 +130,16 @@ object FormationService {
         } > 0
     }
 
-    fun listBase(): List<FormationDTO> = transaction {
+    fun listBase(choirId: UUID): List<FormationDTO> = transaction {
         Formations.selectAll()
-            .where { Formations.concertId.isNull() }
+            .where { Formations.concertId.isNull() and (Formations.choirId eq choirId) }
             .orderBy(Formations.name)
             .map { FormationDTO(it[Formations.id], it[Formations.name], it[Formations.rowSizes]) }
     }
 
-    fun createBase(name: String): FormationDTO = transaction {
+    fun createBase(choirId: UUID, name: String): FormationDTO = transaction {
         val id = Formations.insert {
+            it[Formations.choirId] = choirId
             it[Formations.concertId] = null
             it[Formations.name] = name
         } get Formations.id

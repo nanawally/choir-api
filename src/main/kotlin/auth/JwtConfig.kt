@@ -8,6 +8,7 @@ object JwtConfig {
     fun generateToken(
         userId: String,
         role: String,
+        choirId: String,
         secret: String,
         issuer: String,
         audience: String,
@@ -17,6 +18,7 @@ object JwtConfig {
             .withAudience(audience)
             .withClaim("userId", userId)
             .withClaim("role", role)
+            .withClaim("choirId", choirId)
             .withExpiresAt(Date(System.currentTimeMillis() + 7L * 24 * 60 * 60 * 1000)) // 7 days
             .sign(Algorithm.HMAC256(secret))
     }

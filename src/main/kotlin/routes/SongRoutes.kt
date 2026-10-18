@@ -1,12 +1,13 @@
 package routes
 
+import auth.extractChoirId
 import auth.requireRole
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.request.*
-import io.ktor.utils.io.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.utils.io.*
 import kotlinx.serialization.Serializable
 import service.SongService
 import service.StorageService
@@ -82,14 +83,16 @@ fun Route.songRoutes(storage: StorageService?) {
     route("/songs") {
 
         get {
-            val songs = SongService.list().map(::toResponse)
+            val choirId = extractChoirId()
+            val songs = SongService.list(choirId).map(::toResponse)
             call.respond(songs)
         }
 
         post {
             requireRole("admin") ?: return@post
+            val choirId = extractChoirId()
             val req = call.receive<CreateSongRequest>()
-            val song = SongService.create(req.name)
+            val song = SongService.create(choirId, req.name)
             call.respond(HttpStatusCode.Created, toResponse(song))
         }
 
@@ -104,8 +107,9 @@ fun Route.songRoutes(storage: StorageService?) {
         put("/{id}") {
             requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
+            val choirId = extractChoirId()
             val req = call.receive<UpdateSongRequest>()
-            respondOkOrNotFound(SongService.update(id, req.name, req.composer, req.arranger, req.lyricist, req.delning,
+            respondOkOrNotFound(SongService.update(id, choirId, req.name, req.composer, req.arranger, req.lyricist, req.delning,
                 req.languages, req.length, req.accompanied, req.instrument,
                 req.year, req.collectionName, req.hasSoloists, req.soloistNames, req.soloistReservs,
                 req.hasSheetMusic, req.lyrics))
@@ -114,12 +118,13 @@ fun Route.songRoutes(storage: StorageService?) {
         delete("/{id}") {
             requireRole("admin") ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
+            val choirId = extractChoirId()
             // Delete sheet music file from storage if it exists
             val key = SongService.getSheetMusicKey(id)
             if (key != null && storage != null) {
                 storage.delete(key)
             }
-            respondOkOrNotFound(SongService.delete(id))
+            respondOkOrNotFound(SongService.delete(id, choirId))
         }
 
         post("/{id}/sheet-music") {

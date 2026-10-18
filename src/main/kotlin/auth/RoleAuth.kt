@@ -1,8 +1,8 @@
 package auth
 
 import io.ktor.http.*
+import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
-import io.ktor.server.auth.principal
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
@@ -20,4 +20,9 @@ suspend fun RoutingContext.requireRole(vararg roles: String): JWTPrincipal? {
     }
 
     return principal
+}
+
+fun RoutingContext.extractChoirId(): java.util.UUID {
+    val principal = call.principal<JWTPrincipal>()!!
+    return java.util.UUID.fromString(principal.payload.getClaim("choirId").asString())
 }

@@ -1,5 +1,6 @@
 package routes
 
+import auth.extractChoirId
 import auth.requireRole
 import io.ktor.http.*
 import io.ktor.server.request.*
@@ -145,7 +146,8 @@ fun Route.formationRoutes() {
 
     route("/base-formations") {
         get {
-            val formations = FormationService.listBase().map {
+            val choirId = extractChoirId()
+            val formations = FormationService.listBase(choirId).map {
                 FormationResponse(it.id.toString(), it.name, it.rowSizes)
             }
             call.respond(formations)
@@ -153,8 +155,9 @@ fun Route.formationRoutes() {
 
         post {
             requireRole("admin") ?: return@post
+            val choirId = extractChoirId()
             val req = call.receive<CreateFormationRequest>()
-            val formation = FormationService.createBase(req.name)
+            val formation = FormationService.createBase(choirId, req.name)
             call.respond(
                 HttpStatusCode.Created,
                 FormationResponse(formation.id.toString(), formation.name, formation.rowSizes)

@@ -7,50 +7,54 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.transactions.transaction
-import java.util.UUID
+import java.util.*
 
-data class VoicePartDTO(val id: UUID, val name: String, val color: String, val
-shape: String)
-data class VoiceGroupDTO(val id: UUID, val name: String, val isStandard: Boolean, val parts:
-List<VoicePartDTO>)
+data class VoicePartDTO(val id: UUID, val name: String, val color: String, val shape: String)
+data class VoiceGroupDTO(val id: UUID, val name: String, val isStandard: Boolean, val parts: List<VoicePartDTO>)
 data class VoiceAssignmentDTO(val choristId: UUID, val voicePartId: UUID)
 
 object VoiceGroupService {
 
-    fun list(): List<VoiceGroupDTO> = transaction {
-        val groups = VoiceGroups.selectAll().map { row ->
-            val groupId = row[VoiceGroups.id]
-            val parts = VoiceParts.selectAll()
-                .where { VoiceParts.voiceGroupId eq groupId }
-                .orderBy(VoiceParts.sortOrder)
-                .map { VoicePartDTO(it[VoiceParts.id], it[VoiceParts.name],
-                    it[VoiceParts.color], it[VoiceParts.shape]) }
-            VoiceGroupDTO(groupId, row[VoiceGroups.name], row[VoiceGroups.isStandard], parts)
-        }
-        groups
+    fun list(choirId: UUID): List<VoiceGroupDTO> = transaction {
+        VoiceGroups.selectAll()
+            .where { VoiceGroups.choirId eq choirId }
+            .map { row ->
+                val groupId = row[VoiceGroups.id]
+                val parts = VoiceParts.selectAll()
+                    .where { VoiceParts.voiceGroupId eq groupId }
+                    .orderBy(VoiceParts.sortOrder)
+                    .map { VoicePartDTO(it[VoiceParts.id], it[VoiceParts.name], it[VoiceParts.color], it[VoiceParts.shape]) }
+                VoiceGroupDTO(groupId, row[VoiceGroups.name], row[VoiceGroups.isStandard], parts)
+            }
     }
 
-    fun create(name: String, isStandard: Boolean = false): VoiceGroupDTO = transaction {
+    fun create(choirId: UUID, name: String, isStandard: Boolean = false): VoiceGroupDTO = transaction {
         val id = VoiceGroups.insert {
+            it[VoiceGroups.choirId] = choirId
             it[VoiceGroups.name] = name
             it[VoiceGroups.isStandard] = isStandard
         } get VoiceGroups.id
         VoiceGroupDTO(id, name, isStandard, emptyList())
     }
 
-    fun rename(id: UUID, name: String): Boolean = transaction {
-        VoiceGroups.update({ VoiceGroups.id eq id }) {
+    fun rename(id: UUID, choirId: UUID, name: String): Boolean = transaction {
+        VoiceGroups.update({ (VoiceGroups.id eq id) and (VoiceGroups.choirId eq choirId) }) {
             it[VoiceGroups.name] = name
         } > 0
     }
 
-    fun setStandard(id: UUID, isStandard: Boolean): Boolean = transaction {
-        VoiceGroups.update({ VoiceGroups.id eq id }) {
+    fun setStandard(id: UUID, choirId: UUID, isStandard: Boolean): Boolean = transaction {
+        VoiceGroups.update({ (VoiceGroups.id eq id) and (VoiceGroups.choirId eq choirId) }) {
             it[VoiceGroups.isStandard] = isStandard
         } > 0
     }
 
-    fun delete(id: UUID): Boolean = transaction {
+    fun delete(id: UUID, choirId: UUID): Boolean = transaction {
+        val exists = VoiceGroups.selectAll()
+            .where { (VoiceGroups.id eq id) and (VoiceGroups.choirId eq choirId) }
+            .count() > 0
+        if (!exists) return@transaction false
+
         val partIds = VoiceParts.selectAll()
             .where { VoiceParts.voiceGroupId eq id }
             .map { it[VoiceParts.id] }
@@ -59,8 +63,7 @@ object VoiceGroupService {
         VoiceGroups.deleteWhere { VoiceGroups.id eq id } > 0
     }
 
-    fun addPart(groupId: UUID, name: String, color: String, shape: String):
-            VoicePartDTO = transaction {
+    fun addPart(groupId: UUID, name: String, color: String, shape: String): VoicePartDTO = transaction {
         val maxOrder = VoiceParts.selectAll()
             .where { VoiceParts.voiceGroupId eq groupId }
             .maxOfOrNull { it[VoiceParts.sortOrder] } ?: 0

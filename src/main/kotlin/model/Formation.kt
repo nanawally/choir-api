@@ -7,6 +7,8 @@ object Formations : Table("formations") {
     val concertId = uuid("concert_id").references(Concerts.id).nullable()
     val name = varchar("name", 255)
     val rowSizes = varchar("row_sizes", 255).default("[]")
+    // Only set for base formations (concertId IS NULL); concert formations are scoped through their concert
+    val choirId = uuid("choir_id").references(Choirs.id).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

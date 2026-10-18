@@ -7,6 +7,7 @@ object Concerts : Table("concerts") {
     val name = varchar("name", 255)
     val date = varchar("date", 10).nullable()
     val imageUrl = varchar("image_url", 1024).nullable()
+    val choirId = uuid("choir_id").references(Choirs.id)
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -38,6 +39,7 @@ object Songs : Table("songs") {
     val hasSheetMusic = bool("has_sheet_music").default(false)
     val sheetMusicKey = varchar("sheet_music_key", 512).nullable()
     val lyrics = text("lyrics").nullable()
+    val choirId = uuid("choir_id").references(Choirs.id)
 
     override val primaryKey = PrimaryKey(id)
 }

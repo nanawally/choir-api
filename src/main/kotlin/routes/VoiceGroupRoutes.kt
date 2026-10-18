@@ -1,5 +1,6 @@
 package routes
 
+import auth.extractChoirId
 import auth.requireRole
 import io.ktor.http.*
 import io.ktor.server.request.*
@@ -7,7 +8,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import service.VoiceGroupService
-import java.util.UUID
+import java.util.*
 
 @Serializable
 data class CreateVoiceGroupRequest(val name: String, val isStandard: Boolean = false)
@@ -16,8 +17,7 @@ data class CreateVoiceGroupRequest(val name: String, val isStandard: Boolean = f
 data class RenameVoiceGroupRequest(val name: String)
 
 @Serializable
-data class AddVoicePartRequest(val name: String, val color: String, val shape:
-String)
+data class AddVoicePartRequest(val name: String, val color: String, val shape: String)
 
 @Serializable
 data class UpdateVoicePartRequest(val name: String, val color: String, val shape: String)
@@ -29,12 +29,10 @@ data class ReorderVoicePartsRequest(val partIds: List<String>)
 data class AssignRequest(val choristId: String, val voicePartId: String)
 
 @Serializable
-data class VoicePartResponse(val id: String, val name: String, val color: String,
-                             val shape: String)
+data class VoicePartResponse(val id: String, val name: String, val color: String, val shape: String)
 
 @Serializable
-data class VoiceGroupResponse(val id: String, val name: String, val isStandard: Boolean, val parts:
-List<VoicePartResponse>)
+data class VoiceGroupResponse(val id: String, val name: String, val isStandard: Boolean, val parts: List<VoicePartResponse>)
 
 @Serializable
 data class VoiceAssignmentResponse(val choristId: String, val voicePartId: String)
@@ -42,7 +40,8 @@ data class VoiceAssignmentResponse(val choristId: String, val voicePartId: Strin
 fun Route.voiceGroupRoutes() {
     route("/voice-groups") {
         get {
-            val groups = VoiceGroupService.list().map { g ->
+            val choirId = extractChoirId()
+            val groups = VoiceGroupService.list(choirId).map { g ->
                 VoiceGroupResponse(
                     g.id.toString(), g.name, g.isStandard,
                     g.parts.map { VoicePartResponse(it.id.toString(), it.name, it.color, it.shape) },
@@ -53,8 +52,9 @@ fun Route.voiceGroupRoutes() {
 
         post {
             requireRole("admin") ?: return@post
+            val choirId = extractChoirId()
             val req = call.receive<CreateVoiceGroupRequest>()
-            val group = VoiceGroupService.create(req.name, req.isStandard)
+            val group = VoiceGroupService.create(choirId, req.name, req.isStandard)
             call.respond(
                 HttpStatusCode.Created,
                 VoiceGroupResponse(group.id.toString(), group.name, group.isStandard, emptyList()),
@@ -64,22 +64,25 @@ fun Route.voiceGroupRoutes() {
         put("/{id}") {
             requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
+            val choirId = extractChoirId()
             val req = call.receive<RenameVoiceGroupRequest>()
-            respondOkOrNotFound(VoiceGroupService.rename(id, req.name))
+            respondOkOrNotFound(VoiceGroupService.rename(id, choirId, req.name))
         }
 
         put("/{id}/standard") {
             requireRole("admin") ?: return@put
             val id = UUID.fromString(call.parameters["id"])
+            val choirId = extractChoirId()
             val body = call.receive<Map<String, Boolean>>()
             val isStandard = body["isStandard"] ?: false
-            respondOkOrNotFound(VoiceGroupService.setStandard(id, isStandard))
+            respondOkOrNotFound(VoiceGroupService.setStandard(id, choirId, isStandard))
         }
 
         delete("/{id}") {
             requireRole("admin") ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
-            respondOkOrNotFound(VoiceGroupService.delete(id))
+            val choirId = extractChoirId()
+            respondOkOrNotFound(VoiceGroupService.delete(id, choirId))
         }
 
         post("/{id}/parts") {
@@ -124,8 +127,7 @@ fun Route.voiceGroupRoutes() {
         post("/assignments") {
             requireRole("admin") ?: return@post
             val req = call.receive<AssignRequest>()
-            VoiceGroupService.assign(UUID.fromString(req.choristId),
-                UUID.fromString(req.voicePartId))
+            VoiceGroupService.assign(UUID.fromString(req.choristId), UUID.fromString(req.voicePartId))
             call.respond(HttpStatusCode.OK)
         }
 

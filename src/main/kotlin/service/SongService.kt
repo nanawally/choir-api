@@ -1,18 +1,9 @@
 package service
 
-import model.ConcertSongs
-import model.HiddenChorists
-import model.SongAudioFiles
-import model.SongFormations
-import model.SongLinks
-import model.Songs
+import model.*
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.jetbrains.exposed.sql.update
-import model.Concerts
 import java.util.*
 
 data class SongDTO(
@@ -38,7 +29,7 @@ data class SongDTO(
 
 object SongService {
 
-    private fun rowToDTO(row: org.jetbrains.exposed.sql.ResultRow) = SongDTO(
+    private fun rowToDTO(row: ResultRow) = SongDTO(
         id = row[Songs.id],
         name = row[Songs.name],
         composer = row[Songs.composer],
@@ -59,23 +50,24 @@ object SongService {
         lyrics = row[Songs.lyrics],
     )
 
-    fun list(): List<SongDTO> = transaction {
-        Songs.selectAll().map(::rowToDTO)
+    fun list(choirId: UUID): List<SongDTO> = transaction {
+        Songs.selectAll().where { Songs.choirId eq choirId }.map(::rowToDTO)
     }
 
-    fun create(name: String): SongDTO = transaction {
+    fun create(choirId: UUID, name: String): SongDTO = transaction {
         val id = Songs.insert {
+            it[Songs.choirId] = choirId
             it[Songs.name] = name
         } get Songs.id
 
         SongDTO(id, name, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null)
     }
 
-    fun update(id: UUID, name: String, composer: String?, arranger: String?, lyricist: String?, delning: String?,
+    fun update(id: UUID, choirId: UUID, name: String, composer: String?, arranger: String?, lyricist: String?, delning: String?,
                languages: String?, length: String?, accompanied: Boolean?, instrument: String?,
                year: Int?, collectionName: String?, hasSoloists: Boolean?, soloistNames: String?, soloistReservs: String?,
                hasSheetMusic: Boolean, lyrics: String?): Boolean = transaction {
-        Songs.update({ Songs.id eq id }) {
+        Songs.update({ (Songs.id eq id) and (Songs.choirId eq choirId) }) {
             it[Songs.name] = name
             it[Songs.composer] = composer
             it[Songs.arranger] = arranger
@@ -163,7 +155,12 @@ object SongService {
         SongLinks.deleteWhere { SongLinks.id eq id } > 0
     }
 
-    fun delete(id: UUID): Boolean = transaction {
+    fun delete(id: UUID, choirId: UUID): Boolean = transaction {
+        val exists = Songs.selectAll()
+            .where { (Songs.id eq id) and (Songs.choirId eq choirId) }
+            .count() > 0
+        if (!exists) return@transaction false
+
         val songIds = ConcertSongs.selectAll()
             .where { ConcertSongs.songId eq id }
             .map { it[ConcertSongs.id] }
@@ -175,6 +172,6 @@ object SongService {
         ConcertSongs.deleteWhere { ConcertSongs.songId eq id }
         SongAudioFiles.deleteWhere { SongAudioFiles.songId eq id }
         SongLinks.deleteWhere { SongLinks.songId eq id }
-        Songs.deleteWhere { Songs.id eq id } > 0
+        Songs.deleteWhere { (Songs.id eq id) and (Songs.choirId eq choirId) } > 0
     }
 }
