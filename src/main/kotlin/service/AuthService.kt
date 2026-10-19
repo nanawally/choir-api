@@ -15,7 +15,8 @@ object AuthService {
                 .singleOrNull()
         } ?: return null
 
-        if (!BCrypt.checkpw(password, user[Users.passwordHash])) return null
+        val hash = user[Users.passwordHash] ?: return null // pending account, cannot log in
+        if (!BCrypt.checkpw(password, hash)) return null
 
         return JwtConfig.generateToken(
             userId = user[Users.id].toString(),

@@ -46,8 +46,10 @@ fun Application.module() {
             call.respondText("OK")
         }
         authRoutes()
+        setupRoutes()
 
         authenticate("auth-jwt") {
+            userRoutes()
             choristRoutes()
             concertRoutes(storage)
             concertChoristRoutes()

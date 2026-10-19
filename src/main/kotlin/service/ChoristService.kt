@@ -1,9 +1,6 @@
 package service
 
-import model.Chorists
-import model.HiddenChorists
-import model.Placements
-import model.VoiceAssignments
+import model.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -19,6 +16,15 @@ data class ChoristDTO(
 )
 
 object ChoristService {
+
+    fun getById(id: UUID, choirId: UUID): ChoristDTO? = transaction {
+        Chorists.selectAll()
+            .where { (Chorists.id eq id) and (Chorists.choirId eq choirId) }
+            .firstOrNull()?.let {
+                ChoristDTO(it[Chorists.id], it[Chorists.firstName], it[Chorists.lastName],
+                    it[Chorists.isSectionLeader], it[Chorists.isArchived], it[Chorists.notes])
+            }
+    }
 
     fun list(choirId: UUID, includeArchived: Boolean = false): List<ChoristDTO> = transaction {
         Chorists.selectAll()
@@ -78,6 +84,7 @@ object ChoristService {
         HiddenChorists.deleteWhere { choristId eq id }
         Placements.deleteWhere { choristId eq id }
         VoiceAssignments.deleteWhere { choristId eq id }
+        Users.deleteWhere { Users.choristId eq id }
         Chorists.deleteWhere { (Chorists.id eq id) and (Chorists.choirId eq choirId) } > 0
     }
 }
