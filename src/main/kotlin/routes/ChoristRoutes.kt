@@ -1,15 +1,15 @@
 package routes
 
 import auth.extractChoirId
-import auth.requireRole
+import auth.extractUserId
+import auth.requirePermission
 import io.ktor.http.*
-import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import service.ChoristService
+import service.PermissionService
 import service.UserService
 import java.util.*
 
@@ -33,11 +33,13 @@ data class ChoristResponse(
 fun Route.choristRoutes() {
     route("/chorists") {
         get {
-            val includeArchived = call.request.queryParameters["includeArchived"] == "true"
-            val isAdmin = call.principal<JWTPrincipal>()?.payload?.getClaim("role")?.asString() == "admin"
+            val userId = extractUserId()
             val choirId = extractChoirId()
+            val canViewNotes = PermissionService.check(userId, "chorists_notes", "view")
+            val canViewAccountStatus = PermissionService.check(userId, "permissions", "view")
+            val includeArchived = call.request.queryParameters["includeArchived"] == "true"
             val chorists = ChoristService.list(choirId, includeArchived)
-            val accountStatusByChoristId: Map<String, String> = if (isAdmin) {
+            val accountStatusByChoristId: Map<String, String> = if (canViewAccountStatus) {
                 UserService.list(choirId)
                     .filter { it.choristId != null }
                     .associate { it.choristId.toString() to if (it.isPending) "pending" else "active" }
@@ -49,24 +51,24 @@ fun Route.choristRoutes() {
                     lastName = it.lastName,
                     isSectionLeader = it.isSectionLeader,
                     isArchived = it.isArchived,
-                    notes = if (isAdmin) it.notes else null,
-                    accountStatus = if (isAdmin) (accountStatusByChoristId[it.id.toString()] ?: "none") else null,
+                    notes = if (canViewNotes) it.notes else null,
+                    accountStatus = if (canViewAccountStatus) (accountStatusByChoristId[it.id.toString()] ?: "none") else null,
                 )
             })
         }
 
         post {
-            requireRole("admin") ?: return@post
+            if (!requirePermission("chorists", "edit")) return@post
             val choirId = extractChoirId()
             val req = call.receive<CreateChoristRequest>()
             val chorist = ChoristService.create(choirId, req.firstName, req.lastName, req.isSectionLeader)
             call.respond(HttpStatusCode.Created, ChoristResponse(
-                chorist.id.toString(), chorist.firstName, chorist.lastName, chorist.isSectionLeader, chorist.isArchived, chorist.notes,
+                chorist.id.toString(), chorist.firstName, chorist.lastName, chorist.isSectionLeader, chorist.isArchived,
             ))
         }
 
         put("/{id}") {
-            requireRole("admin") ?: return@put
+            if (!requirePermission("chorists", "edit")) return@put
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             val req = call.receive<UpdateChoristRequest>()
@@ -74,28 +76,28 @@ fun Route.choristRoutes() {
         }
 
         put("/{id}/archive") {
-            requireRole("admin") ?: return@put
+            if (!requirePermission("chorists", "edit")) return@put
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             respondOkOrNotFound(ChoristService.archive(id, choirId))
         }
 
         put("/{id}/unarchive") {
-            requireRole("admin") ?: return@put
+            if (!requirePermission("chorists", "edit")) return@put
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             respondOkOrNotFound(ChoristService.unarchive(id, choirId))
         }
 
         delete("/{id}") {
-            requireRole("admin") ?: return@delete
+            if (!requirePermission("chorists", "delete")) return@delete
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             respondOkOrNotFound(ChoristService.delete(id, choirId))
         }
 
         post("/{id}/account") {
-            requireRole("admin") ?: return@post
+            if (!requirePermission("chorists", "edit")) return@post
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             val chorist = ChoristService.getById(id, choirId) ?: run {

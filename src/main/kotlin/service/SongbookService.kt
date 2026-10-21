@@ -13,7 +13,8 @@ data class SongbookDTO(
     val name: String,
     val date: String?,
     val imageUrl: String?,
-    val isPinned: Boolean
+    val isPinned: Boolean,
+    val isHidden: Boolean = false,
 )
 
 data class SongbookSongDTO(
@@ -39,10 +40,21 @@ data class SongbookSongDTO(
 
 object SongbookService {
 
-    fun list(choirId: UUID): List<SongbookDTO> = transaction {
+    fun list(choirId: UUID, canViewHidden: Boolean = false): List<SongbookDTO> = transaction {
         Songbooks.selectAll()
-            .where { Songbooks.choirId eq choirId }
-            .map { SongbookDTO(it[Songbooks.id], it[Songbooks.name], it[Songbooks.date], it[Songbooks.imageUrl], it[Songbooks.isPinned]) }
+            .where {
+                (Songbooks.choirId eq choirId) and
+                if (canViewHidden) Op.TRUE else (Songbooks.isHidden eq false)
+            }
+            .map { row ->
+                SongbookDTO(row[Songbooks.id], row[Songbooks.name], row[Songbooks.date], row[Songbooks.imageUrl], row[Songbooks.isPinned], row[Songbooks.isHidden])
+            }
+    }
+
+    fun setHidden(id: UUID, choirId: UUID, isHidden: Boolean): Boolean = transaction {
+        Songbooks.update({ (Songbooks.id eq id) and (Songbooks.choirId eq choirId) }) {
+            it[Songbooks.isHidden] = isHidden
+        } > 0
     }
 
     fun create(choirId: UUID, name: String, date: String?, isPinned: Boolean): SongbookDTO = transaction {

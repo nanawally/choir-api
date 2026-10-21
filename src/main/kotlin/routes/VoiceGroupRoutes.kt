@@ -1,7 +1,7 @@
 package routes
 
 import auth.extractChoirId
-import auth.requireRole
+import auth.requirePermission
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -51,7 +51,7 @@ fun Route.voiceGroupRoutes() {
         }
 
         post {
-            requireRole("admin") ?: return@post
+            if (!requirePermission("voice_groups", "edit")) return@post
             val choirId = extractChoirId()
             val req = call.receive<CreateVoiceGroupRequest>()
             val group = VoiceGroupService.create(choirId, req.name, req.isStandard)
@@ -62,7 +62,7 @@ fun Route.voiceGroupRoutes() {
         }
 
         put("/{id}") {
-            requireRole("admin") ?: return@put
+            if (!requirePermission("voice_groups", "edit")) return@put
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             val req = call.receive<RenameVoiceGroupRequest>()
@@ -70,7 +70,7 @@ fun Route.voiceGroupRoutes() {
         }
 
         put("/{id}/standard") {
-            requireRole("admin") ?: return@put
+            if (!requirePermission("voice_groups", "edit")) return@put
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             val body = call.receive<Map<String, Boolean>>()
@@ -79,14 +79,14 @@ fun Route.voiceGroupRoutes() {
         }
 
         delete("/{id}") {
-            requireRole("admin") ?: return@delete
+            if (!requirePermission("voice_groups", "delete")) return@delete
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             respondOkOrNotFound(VoiceGroupService.delete(id, choirId))
         }
 
         post("/{id}/parts") {
-            requireRole("admin") ?: return@post
+            if (!requirePermission("voice_groups", "edit")) return@post
             val groupId = UUID.fromString(call.parameters["id"])
             val req = call.receive<AddVoicePartRequest>()
             val part = VoiceGroupService.addPart(groupId, req.name, req.color, req.shape)
@@ -97,21 +97,21 @@ fun Route.voiceGroupRoutes() {
         }
 
         put("/{id}/parts/reorder") {
-            requireRole("admin") ?: return@put
+            if (!requirePermission("voice_groups", "edit")) return@put
             val req = call.receive<ReorderVoicePartsRequest>()
             VoiceGroupService.reorderParts(req.partIds.map { UUID.fromString(it) })
             call.respond(HttpStatusCode.OK)
         }
 
         put("/parts/{partId}") {
-            requireRole("admin") ?: return@put
+            if (!requirePermission("voice_groups", "edit")) return@put
             val partId = UUID.fromString(call.parameters["partId"])
             val req = call.receive<UpdateVoicePartRequest>()
             respondOkOrNotFound(VoiceGroupService.updatePart(partId, req.name, req.color, req.shape))
         }
 
         delete("/parts/{partId}") {
-            requireRole("admin") ?: return@delete
+            if (!requirePermission("voice_groups", "delete")) return@delete
             val partId = UUID.fromString(call.parameters["partId"])
             respondOkOrNotFound(VoiceGroupService.deletePart(partId))
         }
@@ -125,14 +125,14 @@ fun Route.voiceGroupRoutes() {
         }
 
         post("/assignments") {
-            requireRole("admin") ?: return@post
+            if (!requirePermission("voice_groups", "edit")) return@post
             val req = call.receive<AssignRequest>()
             VoiceGroupService.assign(UUID.fromString(req.choristId), UUID.fromString(req.voicePartId))
             call.respond(HttpStatusCode.OK)
         }
 
         delete("/{groupId}/assignments/{choristId}") {
-            requireRole("admin") ?: return@delete
+            if (!requirePermission("voice_groups", "edit")) return@delete
             val groupId = UUID.fromString(call.parameters["groupId"])
             val choristId = UUID.fromString(call.parameters["choristId"])
             VoiceGroupService.unassign(choristId, groupId)

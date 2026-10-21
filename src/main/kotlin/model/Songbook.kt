@@ -7,8 +7,9 @@ object Songbooks : Table("songbooks") {
     val name = varchar("name", 255)
     val date = varchar("date", 10).nullable()
     val imageUrl = varchar("image_url", 1024).nullable()
-    val isPinned = bool("is_pinned").default(false)
-    val choirId = uuid("choir_id").references(Choirs.id)
+    val isPinned  = bool("is_pinned").default(false)
+    val isHidden  = bool("is_hidden").default(false)
+    val choirId   = uuid("choir_id").references(Choirs.id)
 
     override val primaryKey = PrimaryKey(id)
 }

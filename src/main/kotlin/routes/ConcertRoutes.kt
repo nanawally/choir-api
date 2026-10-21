@@ -1,7 +1,7 @@
 package routes
 
 import auth.extractChoirId
-import auth.requireRole
+import auth.requirePermission
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.request.*
@@ -36,7 +36,7 @@ fun Route.concertRoutes(storage: StorageService?) {
         }
 
         post {
-            requireRole("admin") ?: return@post
+            if (!requirePermission("concerts", "edit")) return@post
             val choirId = extractChoirId()
             val req = call.receive<CreateConcertRequest>()
             val concert = ConcertService.create(choirId, req.name, req.date)
@@ -47,7 +47,7 @@ fun Route.concertRoutes(storage: StorageService?) {
         }
 
         put("/{id}") {
-            requireRole("admin") ?: return@put
+            if (!requirePermission("concerts", "edit")) return@put
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             val req = call.receive<UpdateConcertRequest>()
@@ -55,14 +55,14 @@ fun Route.concertRoutes(storage: StorageService?) {
         }
 
         delete("/{id}") {
-            requireRole("admin") ?: return@delete
+            if (!requirePermission("concerts", "delete")) return@delete
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             respondOkOrNotFound(ConcertService.delete(id, choirId))
         }
 
         post("/{id}/duplicate") {
-            requireRole("admin") ?: return@post
+            if (!requirePermission("concerts", "edit")) return@post
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             val req = call.receive<DuplicateConcertRequest>()
@@ -75,7 +75,7 @@ fun Route.concertRoutes(storage: StorageService?) {
         }
 
         post("/{id}/image") {
-            requireRole("admin") ?: return@post
+            if (!requirePermission("concerts", "edit")) return@post
             val s = requireStorage(storage) ?: return@post
             val id = UUID.fromString(call.parameters["id"])
             val multipart = call.receiveMultipart()
@@ -125,7 +125,7 @@ fun Route.concertRoutes(storage: StorageService?) {
         }
 
         delete("/{id}/image") {
-            requireRole("admin") ?: return@delete
+            if (!requirePermission("concerts", "edit")) return@delete
             val s = requireStorage(storage) ?: return@delete
             val id = UUID.fromString(call.parameters["id"])
             val key = ConcertService.getImageUrl(id)

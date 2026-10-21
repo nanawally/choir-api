@@ -59,6 +59,7 @@ fun Application.module() {
             formationRoutes()
             songFormationRoutes()
             voiceGroupRoutes()
+            permissionRoutes()
         }
     }
 }

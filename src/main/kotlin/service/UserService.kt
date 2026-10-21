@@ -123,6 +123,14 @@ object UserService {
         } > 0
     }
 
+    fun isSuperUser(userId: UUID): Boolean = transaction {
+        Users.selectAll().where { Users.id eq userId }.singleOrNull()?.get(Users.isSuperUser) ?: false
+    }
+
+    fun getById(userId: UUID): UserDTO? = transaction {
+        Users.selectAll().where { Users.id eq userId }.singleOrNull()?.let { toDTO(it) }
+    }
+
     fun delete(userId: UUID, choirId: UUID): Boolean = transaction {
         val exists = Users.selectAll()
             .where { (Users.id eq userId) and (Users.choirId eq choirId) }

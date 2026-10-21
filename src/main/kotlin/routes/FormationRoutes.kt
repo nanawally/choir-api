@@ -1,7 +1,7 @@
 package routes
 
 import auth.extractChoirId
-import auth.requireRole
+import auth.requirePermission
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -52,7 +52,7 @@ fun Route.formationRoutes() {
         }
 
         post {
-            requireRole("admin") ?: return@post
+            if (!requirePermission("formations", "edit")) return@post
             val concertId = UUID.fromString(call.parameters["concertId"])
             val req = call.receive<CreateFormationRequest>()
             val formation = FormationService.create(concertId, req.name)
@@ -83,20 +83,20 @@ fun Route.formationRoutes() {
         }
 
         delete {
-            requireRole("admin") ?: return@delete
+            if (!requirePermission("formations", "delete")) return@delete
             val id = UUID.fromString(call.parameters["id"])
             respondOkOrNotFound(FormationService.delete(id))
         }
 
         put("/name") {
-            requireRole("admin") ?: return@put
+            if (!requirePermission("formations", "edit")) return@put
             val id = UUID.fromString(call.parameters["id"])
             val req = call.receive<RenameFormationRequest>()
             respondOkOrNotFound(FormationService.rename(id, req.name))
         }
 
         put("/placements") {
-            requireRole("admin") ?: return@put
+            if (!requirePermission("formations", "edit")) return@put
             val id = UUID.fromString(call.parameters["id"])
             val body = call.receive<List<PlacementBody>>()
             FormationService.savePlacements(
@@ -107,7 +107,7 @@ fun Route.formationRoutes() {
         }
 
         put("/row-sizes") {
-            requireRole("admin") ?: return@put
+            if (!requirePermission("formations", "edit")) return@put
             val id = UUID.fromString(call.parameters["id"])
             val req = call.receive<RowSizesRequest>()
             FormationService.updateRowSizes(id, req.rowSizes)
@@ -115,7 +115,7 @@ fun Route.formationRoutes() {
         }
 
         post("/duplicate") {
-            requireRole("admin") ?: return@post
+            if (!requirePermission("formations", "edit")) return@post
             val id = UUID.fromString(call.parameters["id"])
             val result = FormationService.duplicate(id)
             if (result != null) {
@@ -129,7 +129,7 @@ fun Route.formationRoutes() {
         }
 
         post("/copy") {
-            requireRole("admin") ?: return@post
+            if (!requirePermission("formations", "edit")) return@post
             val id = UUID.fromString(call.parameters["id"])
             val body = call.receive<CopyToConcertBody>()
             val result = FormationService.copyToConcert(id, UUID.fromString(body.targetConcertId))
@@ -154,7 +154,7 @@ fun Route.formationRoutes() {
         }
 
         post {
-            requireRole("admin") ?: return@post
+            if (!requirePermission("base_formations", "edit")) return@post
             val choirId = extractChoirId()
             val req = call.receive<CreateFormationRequest>()
             val formation = FormationService.createBase(choirId, req.name)
@@ -166,7 +166,7 @@ fun Route.formationRoutes() {
     }
 
     post("/formations/{id}/copy-into-concert") {
-        requireRole("admin") ?: return@post
+        if (!requirePermission("formations", "edit")) return@post
         val id = UUID.fromString(call.parameters["id"])
         val body = call.receive<CopyBaseIntoConcertBody>()
         val result = FormationService.copyBaseIntoConcert(id, UUID.fromString(body.concertId))
