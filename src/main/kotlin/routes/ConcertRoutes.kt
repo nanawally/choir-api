@@ -28,6 +28,7 @@ data class ConcertResponse(val id: String, val name: String, val date: String? =
 fun Route.concertRoutes(storage: StorageService?) {
     route("/concerts") {
         get {
+            if (!requirePermission("concerts", "view")) return@get
             val choirId = extractChoirId()
             val concerts = ConcertService.list(choirId).map {
                 ConcertResponse(it.id.toString(), it.name, it.date, it.imageUrl)
@@ -110,6 +111,7 @@ fun Route.concertRoutes(storage: StorageService?) {
         }
 
         get("/{id}/image") {
+            if (!requirePermission("concerts", "view")) return@get
             val s = requireStorage(storage) ?: return@get
             val id = UUID.fromString(call.parameters["id"])
             val key = ConcertService.getImageUrl(id)

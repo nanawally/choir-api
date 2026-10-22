@@ -40,6 +40,7 @@ data class VoiceAssignmentResponse(val choristId: String, val voicePartId: Strin
 fun Route.voiceGroupRoutes() {
     route("/voice-groups") {
         get {
+            if (!requirePermission("voice_groups", "view")) return@get
             val choirId = extractChoirId()
             val groups = VoiceGroupService.list(choirId).map { g ->
                 VoiceGroupResponse(
@@ -117,6 +118,7 @@ fun Route.voiceGroupRoutes() {
         }
 
         get("/{id}/assignments") {
+            if (!requirePermission("voice_groups", "view")) return@get
             val groupId = UUID.fromString(call.parameters["id"])
             val assignments = VoiceGroupService.getAssignments(groupId).map {
                 VoiceAssignmentResponse(it.choristId.toString(), it.voicePartId.toString())

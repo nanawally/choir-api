@@ -65,6 +65,7 @@ data class SongbookSongResponse(
 fun Route.songbookRoutes(storage: StorageService?) {
     route("/songbooks") {
         get {
+            if (!requirePermission("songbooks", "view")) return@get
             val userId = extractUserId()
             val choirId = extractChoirId()
             val canViewHidden = PermissionService.check(userId, "songbooks_hidden", "view")
@@ -158,6 +159,7 @@ fun Route.songbookRoutes(storage: StorageService?) {
         }
 
         get("/{id}/image") {
+            if (!requirePermission("songbooks", "view")) return@get
             val s = requireStorage(storage) ?: return@get
             val id = UUID.fromString(call.parameters["id"])
             val key = SongbookService.getImageUrl(id)
@@ -188,6 +190,7 @@ fun Route.songbookRoutes(storage: StorageService?) {
 
         route("/{id}/songs") {
             get {
+                if (!requirePermission("songbooks", "view")) return@get
                 val id = UUID.fromString(call.parameters["id"])
                 val songs = SongbookService.listSongs(id).map {
                     SongbookSongResponse(

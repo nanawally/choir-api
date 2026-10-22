@@ -1,6 +1,6 @@
 package routes
 
-import auth.requireRole
+import auth.requirePermission
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -25,6 +25,7 @@ fun Route.concertSongRoutes() {
     route("/concerts/{concertId}/songs") {
 
         get {
+            if (!requirePermission("concerts", "view")) return@get
             val concertId = UUID.fromString(call.parameters["concertId"])
             val songs = ConcertSongService.listByConcert(concertId)
                 .map { ConcertSongResponse(it.id.toString(), it.songId.toString(), it.name, it.sortOrder) }
@@ -32,7 +33,7 @@ fun Route.concertSongRoutes() {
         }
 
         post {
-            requireRole("admin") ?: return@post
+            if (!requirePermission("concerts", "edit")) return@post
             val concertId = UUID.fromString(call.parameters["concertId"])
             val req = call.receive<AddSongToConcertRequest>()
             val song = ConcertSongService.addToConcert(concertId, UUID.fromString(req.songId))
@@ -43,14 +44,14 @@ fun Route.concertSongRoutes() {
         }
 
         put("/reorder") {
-            requireRole("admin") ?: return@put
+            if (!requirePermission("concerts", "edit")) return@put
             val req = call.receive<ReorderConcertSongsRequest>()
             ConcertSongService.reorder(req.concertSongIds.map { UUID.fromString(it) })
             call.respond(HttpStatusCode.OK)
         }
 
         delete("/{id}") {
-            requireRole("admin") ?: return@delete
+            if (!requirePermission("concerts", "delete")) return@delete
             val id = UUID.fromString(call.parameters["id"])
             respondOkOrNotFound(ConcertSongService.removeFromConcert(id))
         }
@@ -59,13 +60,14 @@ fun Route.concertSongRoutes() {
     route("/concert-songs/{concertSongId}") {
 
         get("/hidden") {
+            if (!requirePermission("concerts", "view")) return@get
             val concertSongId = UUID.fromString(call.parameters["concertSongId"])
             val ids = ConcertSongService.getHiddenChorists(concertSongId)
             call.respond(ids.map { it.toString() })
         }
 
         put("/hidden") {
-            requireRole("admin") ?: return@put
+            if (!requirePermission("concerts", "edit")) return@put
             val concertSongId = UUID.fromString(call.parameters["concertSongId"])
             val req = call.receive<HiddenChoristRequest>()
             ConcertSongService.setHiddenChorists(concertSongId, req.choristIds.map {

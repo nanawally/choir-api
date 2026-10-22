@@ -1,6 +1,7 @@
 package routes
 
 import auth.extractChoirId
+import auth.extractUserId
 import auth.requirePermission
 import io.ktor.http.*
 import io.ktor.http.content.*
@@ -9,6 +10,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.utils.io.*
 import kotlinx.serialization.Serializable
+import service.PermissionService
 import service.SongService
 import service.StorageService
 import java.util.*
@@ -83,6 +85,7 @@ fun Route.songRoutes(storage: StorageService?) {
     route("/songs") {
 
         get {
+            if (!requirePermission("songs", "view")) return@get
             val choirId = extractChoirId()
             val songs = SongService.list(choirId).map(::toResponse)
             call.respond(songs)
@@ -97,6 +100,7 @@ fun Route.songRoutes(storage: StorageService?) {
         }
 
         get("/{id}/concerts") {
+            if (!requirePermission("songs", "view")) return@get
             val id = UUID.fromString(call.parameters["id"])
             val concerts = SongService.listConcertsForSong(id).map { (cId, name) ->
                 mapOf("id" to cId.toString(), "name" to name)
@@ -158,6 +162,11 @@ fun Route.songRoutes(storage: StorageService?) {
         }
 
         get("/{id}/sheet-music") {
+            val uid = extractUserId()
+            if (!PermissionService.check(uid, "songs", "view") && !PermissionService.check(uid, "songbooks", "view")) {
+                call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Insufficient permissions"))
+                return@get
+            }
             val s = requireStorage(storage) ?: return@get
             val id = UUID.fromString(call.parameters["id"])
             val key = SongService.getSheetMusicKey(id)
@@ -180,6 +189,11 @@ fun Route.songRoutes(storage: StorageService?) {
         }
 
         get("/{id}/audio-files") {
+            val uid = extractUserId()
+            if (!PermissionService.check(uid, "songs", "view") && !PermissionService.check(uid, "songbooks", "view")) {
+                call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Insufficient permissions"))
+                return@get
+            }
             val id = UUID.fromString(call.parameters["id"])
             val files = SongService.listAudioFiles(id).map {
                 mapOf("id" to it.id.toString(), "voicePartId" to it.voicePartId?.toString(), "fileName" to it.fileName)
@@ -234,6 +248,11 @@ fun Route.songRoutes(storage: StorageService?) {
         }
 
         get("/audio-files/{fileId}/stream") {
+            val uid = extractUserId()
+            if (!PermissionService.check(uid, "songs", "view") && !PermissionService.check(uid, "songbooks", "view")) {
+                call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Insufficient permissions"))
+                return@get
+            }
             val s = requireStorage(storage) ?: return@get
             val fileId = UUID.fromString(call.parameters["fileId"])
             val file = SongService.getAudioFile(fileId)
@@ -244,6 +263,11 @@ fun Route.songRoutes(storage: StorageService?) {
         }
 
         get("/{id}/links") {
+            val uid = extractUserId()
+            if (!PermissionService.check(uid, "songs", "view") && !PermissionService.check(uid, "songbooks", "view")) {
+                call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Insufficient permissions"))
+                return@get
+            }
             val id = UUID.fromString(call.parameters["id"])
             val links = SongService.listLinks(id).map {
                 mapOf("id" to it.id.toString(), "url" to it.url, "label" to it.label)

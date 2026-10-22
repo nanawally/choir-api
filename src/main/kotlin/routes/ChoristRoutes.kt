@@ -33,6 +33,7 @@ data class ChoristResponse(
 fun Route.choristRoutes() {
     route("/chorists") {
         get {
+            if (!requirePermission("chorists", "view")) return@get
             val userId = extractUserId()
             val choirId = extractChoirId()
             val canViewNotes = PermissionService.check(userId, "chorists_notes", "view")
