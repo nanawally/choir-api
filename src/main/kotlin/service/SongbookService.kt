@@ -1,5 +1,6 @@
 package service
 
+import model.ConcertSongs
 import model.SongbookSongs
 import model.Songbooks
 import model.Songs
@@ -107,6 +108,28 @@ object SongbookService {
             }
         }
         SongbookDTO(newId, newName, original[Songbooks.date], original[Songbooks.imageUrl], false)
+    }
+
+    fun createFromConcert(choirId: UUID, concertId: UUID, name: String, date: String?): SongbookDTO = transaction {
+        val newId = Songbooks.insert {
+            it[Songbooks.choirId] = choirId
+            it[Songbooks.name] = name
+            it[Songbooks.date] = date
+            it[Songbooks.isPinned] = false
+        } get Songbooks.id
+
+        ConcertSongs.selectAll()
+            .where { ConcertSongs.concertId eq concertId }
+            .orderBy(ConcertSongs.sortOrder to SortOrder.ASC)
+            .forEachIndexed { index, row ->
+                SongbookSongs.insert {
+                    it[SongbookSongs.songbookId] = newId
+                    it[SongbookSongs.songId] = row[ConcertSongs.songId]
+                    it[SongbookSongs.sortOrder] = index
+                }
+            }
+
+        SongbookDTO(newId, name, date, null, false)
     }
 
     fun listSongs(songbookId: UUID): List<SongbookSongDTO> = transaction {

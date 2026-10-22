@@ -10,6 +10,7 @@ import io.ktor.server.routing.*
 import io.ktor.utils.io.*
 import kotlinx.serialization.Serializable
 import service.ConcertService
+import service.SongbookService
 import service.StorageService
 import java.util.*
 
@@ -21,6 +22,9 @@ data class UpdateConcertRequest(val name: String, val date: String? = null)
 
 @Serializable
 data class DuplicateConcertRequest(val name: String)
+
+@Serializable
+data class CreateSongbookFromConcertRequest(val name: String, val date: String? = null)
 
 @Serializable
 data class ConcertResponse(val id: String, val name: String, val date: String? = null, val imageUrl: String? = null)
@@ -60,6 +64,19 @@ fun Route.concertRoutes(storage: StorageService?) {
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             respondOkOrNotFound(ConcertService.delete(id, choirId))
+        }
+
+        post("/{id}/create-songbook") {
+            if (!requirePermission("concerts", "view")) return@post
+            if (!requirePermission("songbooks", "edit")) return@post
+            val id = UUID.fromString(call.parameters["id"])
+            val choirId = extractChoirId()
+            val req = call.receive<CreateSongbookFromConcertRequest>()
+            val songbook = SongbookService.createFromConcert(choirId, id, req.name, req.date)
+            call.respond(
+                HttpStatusCode.Created,
+                SongbookResponse(songbook.id.toString(), songbook.name, songbook.date, songbook.imageUrl, songbook.isPinned, songbook.isHidden)
+            )
         }
 
         post("/{id}/duplicate") {
