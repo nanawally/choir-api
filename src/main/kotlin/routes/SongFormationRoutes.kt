@@ -16,14 +16,14 @@ fun Route.songFormationRoutes() {
     route("/concert-songs/{concertSongId}/formations") {
 
         get {
-            if (!requirePermission("formations", "view")) return@get
+            if (!requirePermission("concerts", "view")) return@get
             val concertSongId = UUID.fromString(call.parameters["concertSongId"])
             val songFormations = SongFormationService.listBySong(concertSongId).map { it.toString() }
             call.respond(songFormations)
         }
 
         put {
-            if (!requirePermission("formations", "edit")) return@put
+            if (!requirePermission("concerts", "edit")) return@put
             val concertSongId = UUID.fromString(call.parameters["concertSongId"])
             val body = call.receive<SetSongFormationsRequest>()
             SongFormationService.setBySong(

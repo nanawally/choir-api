@@ -46,7 +46,7 @@ fun Route.formationRoutes() {
     route("/concerts/{concertId}/formations") {
 
         get {
-            if (!requirePermission("formations", "view")) return@get
+            if (!requirePermission("concerts", "view")) return@get
             val concertId = UUID.fromString(call.parameters["concertId"])
             val formations = FormationService.listByConcert(concertId).map {
                 FormationResponse(it.id.toString(), it.name, it.rowSizes)
@@ -55,7 +55,7 @@ fun Route.formationRoutes() {
         }
 
         post {
-            if (!requirePermission("formations", "edit")) return@post
+            if (!requirePermission("concerts", "edit")) return@post
             val concertId = UUID.fromString(call.parameters["concertId"])
             val req = call.receive<CreateFormationRequest>()
             val formation = FormationService.create(concertId, req.name)
@@ -70,7 +70,7 @@ fun Route.formationRoutes() {
     route("/formations/{id}") {
         get {
             val uid = extractUserId()
-            if (!PermissionService.check(uid, "formations", "view") && !PermissionService.check(uid, "base_formations", "view")) {
+            if (!PermissionService.check(uid, "concerts", "view") && !PermissionService.check(uid, "base_formations", "view")) {
                 call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Insufficient permissions"))
                 return@get
             }
@@ -92,7 +92,7 @@ fun Route.formationRoutes() {
 
         delete {
             val uid = extractUserId()
-            if (!PermissionService.check(uid, "formations", "delete") && !PermissionService.check(uid, "base_formations", "delete")) {
+            if (!PermissionService.check(uid, "concerts", "delete") && !PermissionService.check(uid, "base_formations", "delete")) {
                 call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Insufficient permissions"))
                 return@delete
             }
@@ -102,7 +102,7 @@ fun Route.formationRoutes() {
 
         put("/name") {
             val uid = extractUserId()
-            if (!PermissionService.check(uid, "formations", "edit") && !PermissionService.check(uid, "base_formations", "edit")) {
+            if (!PermissionService.check(uid, "concerts", "edit") && !PermissionService.check(uid, "base_formations", "edit")) {
                 call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Insufficient permissions"))
                 return@put
             }
@@ -113,7 +113,7 @@ fun Route.formationRoutes() {
 
         put("/placements") {
             val uid = extractUserId()
-            if (!PermissionService.check(uid, "formations", "edit") && !PermissionService.check(uid, "base_formations", "edit")) {
+            if (!PermissionService.check(uid, "concerts", "edit") && !PermissionService.check(uid, "base_formations", "edit")) {
                 call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Insufficient permissions"))
                 return@put
             }
@@ -128,7 +128,7 @@ fun Route.formationRoutes() {
 
         put("/row-sizes") {
             val uid = extractUserId()
-            if (!PermissionService.check(uid, "formations", "edit") && !PermissionService.check(uid, "base_formations", "edit")) {
+            if (!PermissionService.check(uid, "concerts", "edit") && !PermissionService.check(uid, "base_formations", "edit")) {
                 call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Insufficient permissions"))
                 return@put
             }
@@ -140,7 +140,7 @@ fun Route.formationRoutes() {
 
         post("/duplicate") {
             val uid = extractUserId()
-            if (!PermissionService.check(uid, "formations", "edit") && !PermissionService.check(uid, "base_formations", "edit")) {
+            if (!PermissionService.check(uid, "concerts", "edit") && !PermissionService.check(uid, "base_formations", "edit")) {
                 call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Insufficient permissions"))
                 return@post
             }
@@ -157,7 +157,7 @@ fun Route.formationRoutes() {
         }
 
         post("/copy") {
-            if (!requirePermission("formations", "edit")) return@post
+            if (!requirePermission("concerts", "edit")) return@post
             val id = UUID.fromString(call.parameters["id"])
             val body = call.receive<CopyToConcertBody>()
             val result = FormationService.copyToConcert(id, UUID.fromString(body.targetConcertId))
@@ -195,7 +195,7 @@ fun Route.formationRoutes() {
     }
 
     post("/formations/{id}/copy-into-concert") {
-        if (!requirePermission("formations", "edit")) return@post
+        if (!requirePermission("concerts", "edit")) return@post
         val id = UUID.fromString(call.parameters["id"])
         val body = call.receive<CopyBaseIntoConcertBody>()
         val result = FormationService.copyBaseIntoConcert(id, UUID.fromString(body.concertId))
