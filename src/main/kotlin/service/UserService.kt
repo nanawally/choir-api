@@ -1,9 +1,11 @@
 package service
 
+import model.UserGroups
 import model.Users
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.mindrot.jbcrypt.BCrypt
 import java.text.Normalizer
 import java.time.Instant
 import java.util.*
@@ -129,6 +131,25 @@ object UserService {
 
     fun getById(userId: UUID): UserDTO? = transaction {
         Users.selectAll().where { Users.id eq userId }.singleOrNull()?.let { toDTO(it) }
+    }
+
+    fun changePassword(userId: UUID, oldPassword: String, newPassword: String): Boolean = transaction {
+        val user = Users.selectAll().where { Users.id eq userId }.singleOrNull() ?: return@transaction false
+        val hash = user[Users.passwordHash] ?: return@transaction false
+        if (!BCrypt.checkpw(oldPassword, hash)) return@transaction false
+        Users.update({ Users.id eq userId }) {
+            it[Users.passwordHash] = AuthService.hashPassword(newPassword)
+        }
+        true
+    }
+
+    fun deleteSelf(userId: UUID, password: String): Boolean = transaction {
+        val user = Users.selectAll().where { Users.id eq userId }.singleOrNull() ?: return@transaction false
+        val hash = user[Users.passwordHash] ?: return@transaction false
+        if (!BCrypt.checkpw(password, hash)) return@transaction false
+        UserGroups.deleteWhere { UserGroups.userId eq userId }
+        Users.deleteWhere { Users.id eq userId }
+        true
     }
 
     fun delete(userId: UUID, choirId: UUID): Boolean = transaction {

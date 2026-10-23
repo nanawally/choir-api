@@ -49,6 +49,7 @@ fun Application.module() {
         setupRoutes()
 
         authenticate("auth-jwt") {
+            meRoutes()
             userRoutes()
             choristRoutes()
             concertRoutes(storage)
