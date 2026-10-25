@@ -18,6 +18,7 @@ val ALL_FEATURES = listOf(
     "formations",
     "base_formations",
     "permissions",
+    "users",
 )
 
 data class PermissionDTO(
