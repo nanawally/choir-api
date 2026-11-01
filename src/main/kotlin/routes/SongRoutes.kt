@@ -22,8 +22,11 @@ data class CreateSongRequest(val name: String)
 data class UpdateSongRequest(
     val name: String,
     val composer: String? = null,
+    val composerSortKey: String? = null,
     val arranger: String? = null,
+    val arrangerSortKey: String? = null,
     val lyricist: String? = null,
+    val lyricistSortKey: String? = null,
     val delning: String? = null,
     val languages: String? = null,
     val length: String? = null,
@@ -43,8 +46,11 @@ data class SongResponse(
     val id: String,
     val name: String,
     val composer: String? = null,
+    val composerSortKey: String? = null,
     val arranger: String? = null,
+    val arrangerSortKey: String? = null,
     val lyricist: String? = null,
+    val lyricistSortKey: String? = null,
     val delning: String? = null,
     val languages: String? = null,
     val length: String? = null,
@@ -64,8 +70,11 @@ private fun toResponse(dto: service.SongDTO) = SongResponse(
     id = dto.id.toString(),
     name = dto.name,
     composer = dto.composer,
+    composerSortKey = dto.composerSortKey,
     arranger = dto.arranger,
+    arrangerSortKey = dto.arrangerSortKey,
     lyricist = dto.lyricist,
+    lyricistSortKey = dto.lyricistSortKey,
     delning = dto.delning,
     languages = dto.languages,
     length = dto.length,
@@ -113,7 +122,8 @@ fun Route.songRoutes(storage: StorageService?) {
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             val req = call.receive<UpdateSongRequest>()
-            respondOkOrNotFound(SongService.update(id, choirId, req.name, req.composer, req.arranger, req.lyricist, req.delning,
+            respondOkOrNotFound(SongService.update(id, choirId, req.name, req.composer, req.composerSortKey,
+                req.arranger, req.arrangerSortKey, req.lyricist, req.lyricistSortKey, req.delning,
                 req.languages, req.length, req.accompanied, req.instrument,
                 req.year, req.collectionName, req.hasSoloists, req.soloistNames, req.soloistReservs,
                 req.hasSheetMusic, req.lyrics))

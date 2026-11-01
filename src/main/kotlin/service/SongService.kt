@@ -10,8 +10,11 @@ data class SongDTO(
     val id: UUID,
     val name: String,
     val composer: String?,
+    val composerSortKey: String?,
     val arranger: String?,
+    val arrangerSortKey: String?,
     val lyricist: String?,
+    val lyricistSortKey: String?,
     val delning: String?,
     val languages: String?,
     val length: String?,
@@ -33,8 +36,11 @@ object SongService {
         id = row[Songs.id],
         name = row[Songs.name],
         composer = row[Songs.composer],
+        composerSortKey = row[Songs.composerSortKey],
         arranger = row[Songs.arranger],
+        arrangerSortKey = row[Songs.arrangerSortKey],
         lyricist = row[Songs.lyricist],
+        lyricistSortKey = row[Songs.lyricistSortKey],
         delning = row[Songs.delning],
         languages = row[Songs.languages],
         length = row[Songs.length],
@@ -60,18 +66,22 @@ object SongService {
             it[Songs.name] = name
         } get Songs.id
 
-        SongDTO(id, name, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null)
+        SongDTO(id, name, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null)
     }
 
-    fun update(id: UUID, choirId: UUID, name: String, composer: String?, arranger: String?, lyricist: String?, delning: String?,
-               languages: String?, length: String?, accompanied: Boolean?, instrument: String?,
+    fun update(id: UUID, choirId: UUID, name: String, composer: String?, composerSortKey: String?,
+               arranger: String?, arrangerSortKey: String?, lyricist: String?, lyricistSortKey: String?,
+               delning: String?, languages: String?, length: String?, accompanied: Boolean?, instrument: String?,
                year: Int?, collectionName: String?, hasSoloists: Boolean?, soloistNames: String?, soloistReservs: String?,
                hasSheetMusic: Boolean, lyrics: String?): Boolean = transaction {
         Songs.update({ (Songs.id eq id) and (Songs.choirId eq choirId) }) {
             it[Songs.name] = name
             it[Songs.composer] = composer
+            it[Songs.composerSortKey] = composerSortKey
             it[Songs.arranger] = arranger
+            it[Songs.arrangerSortKey] = arrangerSortKey
             it[Songs.lyricist] = lyricist
+            it[Songs.lyricistSortKey] = lyricistSortKey
             it[Songs.delning] = delning
             it[Songs.languages] = languages
             it[Songs.length] = length

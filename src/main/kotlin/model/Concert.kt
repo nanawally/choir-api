@@ -24,8 +24,11 @@ object Songs : Table("songs") {
     val id = uuid("id").autoGenerate()
     val name = varchar("name", 255)
     val composer = varchar("composer", 255).nullable()
+    val composerSortKey = varchar("composer_sort_key", 255).nullable()
     val arranger = varchar("arranger", 255).nullable()
+    val arrangerSortKey = varchar("arranger_sort_key", 255).nullable()
     val lyricist = varchar("lyricist", 255).nullable()
+    val lyricistSortKey = varchar("lyricist_sort_key", 255).nullable()
     val delning = varchar("delning", 255).nullable()
     val languages = varchar("languages", 500).nullable()  // comma-separated
     val length = varchar("length", 10).nullable()          // "MM:SS" or "MM"
