@@ -30,7 +30,7 @@ data class UserResponse(
 fun Route.userRoutes() {
     route("/users") {
         get {
-            if (!requirePermission("permissions", "view")) return@get
+            if (!requirePermission("users", "view")) return@get
             val choirId = extractChoirId()
             val users = UserService.list(choirId).map {
                 UserResponse(it.id.toString(), it.username, it.choristId?.toString(),
@@ -40,7 +40,7 @@ fun Route.userRoutes() {
         }
 
         post {
-            if (!requirePermission("permissions", "edit")) return@post
+            if (!requirePermission("users", "edit")) return@post
             val choirId = extractChoirId()
             val req = call.receive<CreateUserRequest>()
             val token = UserService.createNonChorist(choirId, req.username, req.role)
@@ -48,7 +48,7 @@ fun Route.userRoutes() {
         }
 
         put("/{id}/role") {
-            if (!requirePermission("permissions", "edit")) return@put
+            if (!requirePermission("users", "edit")) return@put
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             val req = call.receive<SetRoleRequest>()
@@ -60,7 +60,7 @@ fun Route.userRoutes() {
         }
 
         post("/{id}/reset") {
-            if (!requirePermission("permissions", "edit")) return@post
+            if (!requirePermission("users", "edit")) return@post
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             val token = UserService.resetAccount(id, choirId)
@@ -72,21 +72,21 @@ fun Route.userRoutes() {
         }
 
         put("/{id}/archive") {
-            if (!requirePermission("permissions", "edit")) return@put
+            if (!requirePermission("users", "edit")) return@put
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             respondOkOrNotFound(UserService.archive(id, choirId))
         }
 
         put("/{id}/unarchive") {
-            if (!requirePermission("permissions", "edit")) return@put
+            if (!requirePermission("users", "edit")) return@put
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             respondOkOrNotFound(UserService.unarchive(id, choirId))
         }
 
         delete("/{id}") {
-            if (!requirePermission("permissions", "delete")) return@delete
+            if (!requirePermission("users", "delete")) return@delete
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
             respondOkOrNotFound(UserService.delete(id, choirId))
