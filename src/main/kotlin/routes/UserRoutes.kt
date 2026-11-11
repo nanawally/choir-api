@@ -7,6 +7,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
+import service.ChoristService
 import service.UserService
 import java.util.*
 
@@ -21,6 +22,7 @@ data class UserResponse(
     val id: String,
     val username: String,
     val choristId: String?,
+    val choristName: String?,
     val role: String,
     val email: String?,
     val isArchived: Boolean,
@@ -32,11 +34,18 @@ fun Route.userRoutes() {
         get {
             if (!requirePermission("users", "view")) return@get
             val choirId = extractChoirId()
-            val users = UserService.list(choirId).map {
+            val users = UserService.list(choirId)
+            val choristIds = users.mapNotNull { it.choristId }
+            val choristNames = if (choristIds.isNotEmpty()) {
+                choristIds.mapNotNull { cId ->
+                    ChoristService.getById(cId, choirId)?.let { cId to "${it.firstName} ${it.lastName}" }
+                }.toMap()
+            } else emptyMap()
+            call.respond(users.map {
                 UserResponse(it.id.toString(), it.username, it.choristId?.toString(),
+                    it.choristId?.let { cId -> choristNames[cId] },
                     it.role, it.email, it.isArchived, it.isPending)
-            }
-            call.respond(users)
+            })
         }
 
         post {
@@ -89,7 +98,17 @@ fun Route.userRoutes() {
             if (!requirePermission("users", "delete")) return@delete
             val id = UUID.fromString(call.parameters["id"])
             val choirId = extractChoirId()
-            respondOkOrNotFound(UserService.delete(id, choirId))
+            val alsoDeleteChorist = call.request.queryParameters["deleteChorist"] == "true"
+            val user = UserService.getById(id) ?: run {
+                call.respond(HttpStatusCode.NotFound)
+                return@delete
+            }
+            // Delete user first, then chorist (which would otherwise cascade-delete the user)
+            UserService.delete(id, choirId)
+            if (alsoDeleteChorist && user.choristId != null) {
+                ChoristService.delete(user.choristId, choirId, deleteUser = false)
+            }
+            call.respond(HttpStatusCode.OK)
         }
     }
 }

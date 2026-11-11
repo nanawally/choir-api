@@ -29,11 +29,21 @@ data class RenameFormationRequest(val name: String)
 data class RowSizesRequest(val rowSizes: String)
 
 @Serializable
+data class GhostChoristBody(
+    val id: String,
+    val firstName: String,
+    val lastName: String,
+    val isArchived: Boolean,
+    val isDeleted: Boolean,
+)
+
+@Serializable
 data class FormationDetailResponse(
     val id: String,
     val name: String,
     val placements: List<PlacementBody>,
     val rowSizes: String = "[]",
+    val ghostChorists: List<GhostChoristBody> = emptyList(),
 )
 
 @Serializable
@@ -84,6 +94,9 @@ fun Route.formationRoutes() {
                         PlacementBody(it.choristId.toString(), it.gridX, it.gridY)
                     },
                     result.rowSizes,
+                    result.ghostChorists.map {
+                        GhostChoristBody(it.id.toString(), it.firstName, it.lastName, it.isArchived, it.isDeleted)
+                    },
                 ))
             } else {
                 call.respond(HttpStatusCode.NotFound)

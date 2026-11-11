@@ -1,9 +1,6 @@
 package service
 
-import model.ConcertChorists
-import model.Formations
-import model.Placements
-import model.SongFormations
+import model.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -11,11 +8,20 @@ import java.util.*
 
 data class FormationDTO(val id: UUID, val name: String, val rowSizes: String)
 data class PlacementDTO(val choristId: UUID, val gridX: Int, val gridY: Int)
+data class GhostChoristDTO(
+    val id: UUID,
+    val firstName: String,
+    val lastName: String,
+    val isArchived: Boolean,
+    val isDeleted: Boolean,
+)
+
 data class FormationWithPlacements(
     val id: UUID,
     val name: String,
     val placements: List<PlacementDTO>,
     val rowSizes: String,
+    val ghostChorists: List<GhostChoristDTO> = emptyList(),
 )
 
 object FormationService {
@@ -49,11 +55,20 @@ object FormationService {
             .where { Placements.formationId eq id }
             .map { PlacementDTO(it[Placements.choristId], it[Placements.gridX], it[Placements.gridY]) }
 
+        // Find ghost chorists: placed chorists who are archived or deleted
+        val placedChoristIds = placements.map { it.choristId }
+        val ghostChorists = if (placedChoristIds.isNotEmpty()) {
+            Chorists.selectAll()
+                .where { (Chorists.id inList placedChoristIds) and ((Chorists.isArchived eq true) or (Chorists.isDeleted eq true)) }
+                .map { GhostChoristDTO(it[Chorists.id], it[Chorists.firstName], it[Chorists.lastName], it[Chorists.isArchived], it[Chorists.isDeleted]) }
+        } else emptyList()
+
         FormationWithPlacements(
             formation[Formations.id],
             formation[Formations.name],
             placements,
             formation[Formations.rowSizes],
+            ghostChorists,
         )
     }
 

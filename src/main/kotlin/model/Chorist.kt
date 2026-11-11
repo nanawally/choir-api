@@ -8,6 +8,7 @@ object Chorists : Table("chorists") {
     val lastName = varchar("last_name", 255).default("")
     val isSectionLeader = bool("is_section_leader").default(false)
     val isArchived = bool("is_archived").default(false)
+    val isDeleted = bool("is_deleted").default(false)
     val notes = text("notes").nullable()
     val choirId = uuid("choir_id").references(Choirs.id)
 
