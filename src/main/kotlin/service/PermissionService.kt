@@ -39,6 +39,12 @@ data class PermissionGroupDTO(
 
 object PermissionService {
 
+    private fun isInAdminGroup(groupIds: List<UUID>): Boolean =
+        if (groupIds.isEmpty()) false
+        else PermissionGroups.selectAll()
+            .where { (PermissionGroups.id inList groupIds) and (PermissionGroups.name eq "Admin") }
+            .count() > 0
+
     /** True if the user has the given action on a feature (isSuperUser bypasses all checks). */
     fun check(userId: UUID, feature: String, action: String): Boolean = transaction {
         val user = Users.selectAll().where { Users.id eq userId }.singleOrNull() ?: return@transaction false
@@ -48,6 +54,7 @@ object PermissionService {
             .where { UserGroups.userId eq userId }
             .map { it[UserGroups.groupId] }
         if (groupIds.isEmpty()) return@transaction false
+        if (isInAdminGroup(groupIds)) return@transaction true
 
         val col = when (action) {
             "view"   -> GroupPermissions.canView
@@ -77,6 +84,12 @@ object PermissionService {
             .where { UserGroups.userId eq userId }
             .map { it[UserGroups.groupId] }
 
+        if (isInAdminGroup(groupIds)) {
+            return@transaction ALL_FEATURES.associateWith { f ->
+                PermissionDTO(f, canView = true, canEdit = true, canDelete = true)
+            }
+        }
+
         val rows = if (groupIds.isEmpty()) emptyList()
         else GroupPermissions.selectAll()
             .where { GroupPermissions.groupId inList groupIds }
@@ -99,16 +112,25 @@ object PermissionService {
             .map { it[PermissionGroups.id] to it[PermissionGroups.name] }
 
         groups.map { (gId, gName) ->
-            val perms = GroupPermissions.selectAll()
+            val isAdmin = gName == "Admin"
+            val rows = GroupPermissions.selectAll()
                 .where { GroupPermissions.groupId eq gId }
                 .map { row ->
-                    PermissionDTO(
-                        feature   = row[GroupPermissions.feature],
-                        canView   = row[GroupPermissions.canView],
-                        canEdit   = row[GroupPermissions.canEdit],
-                        canDelete = row[GroupPermissions.canDelete],
-                    )
+                    if (isAdmin) {
+                        PermissionDTO(row[GroupPermissions.feature], canView = true, canEdit = true, canDelete = true)
+                    } else {
+                        PermissionDTO(
+                            feature   = row[GroupPermissions.feature],
+                            canView   = row[GroupPermissions.canView],
+                            canEdit   = row[GroupPermissions.canEdit],
+                            canDelete = row[GroupPermissions.canDelete],
+                        )
+                    }
                 }
+            val existingFeatures = rows.map { it.feature }.toSet()
+            val perms = rows + ALL_FEATURES.filter { it !in existingFeatures }.map { f ->
+                PermissionDTO(f, canView = isAdmin, canEdit = isAdmin, canDelete = isAdmin)
+            }
             val members = UserGroups.selectAll()
                 .where { UserGroups.groupId eq gId }
                 .map { it[UserGroups.userId] }
