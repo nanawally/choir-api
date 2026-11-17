@@ -4,11 +4,9 @@ import auth.extractChoirId
 import auth.extractUserId
 import auth.requirePermission
 import io.ktor.http.*
-import io.ktor.http.content.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.utils.io.*
 import kotlinx.serialization.Serializable
 import service.PermissionService
 import service.SongbookService
@@ -127,34 +125,10 @@ fun Route.songbookRoutes(storage: StorageService?) {
             if (!requirePermission("songbooks", "edit")) return@post
             val s = requireStorage(storage) ?: return@post
             val id = UUID.fromString(call.parameters["id"])
-            val multipart = call.receiveMultipart()
-            var fileBytes: ByteArray? = null
-            var contentType = "image/jpeg"
-
-            multipart.forEachPart { part ->
-                if (part is PartData.FileItem && part.name == "file") {
-                    fileBytes = part.provider().toByteArray()
-                    contentType = part.contentType?.toString() ?: "image/jpeg"
-                }
-                part.dispose()
-            }
-
-            val bytes = fileBytes
-            if (bytes == null) {
-                call.respond(HttpStatusCode.BadRequest, "No file provided")
-                return@post
-            }
-
-            if (contentType !in listOf("image/jpeg", "image/png", "image/webp")) {
-                call.respond(HttpStatusCode.BadRequest, "Unsupported image type: $contentType. Use JPEG, PNG, or WebP.")
-                return@post
-            }
-
-            val extension = if (contentType.contains("png")) "png" else "jpg"
-            val key = "songbook-images/$id.$extension"
-            s.upload(key, bytes, contentType)
+            val upload = receiveImageUpload() ?: return@post
+            val key = uploadImageKey("songbook-images", id, upload.contentType)
+            s.upload(key, upload.bytes, upload.contentType)
             SongbookService.setImageUrl(id, key)
-
             call.respond(HttpStatusCode.OK, mapOf("key" to key))
         }
 

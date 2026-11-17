@@ -26,9 +26,10 @@ data class FormationWithPlacements(
 
 object FormationService {
 
-    private fun copyPlacements(fromId: UUID, toId: UUID) {
+    private fun copyPlacements(fromId: UUID, toId: UUID, choristFilter: Set<UUID>? = null) {
         Placements.selectAll()
             .where { Placements.formationId eq fromId }
+            .let { query -> if (choristFilter != null) query.filter { it[Placements.choristId] in choristFilter } else query.toList() }
             .forEach { p ->
                 Placements.insert {
                     it[formationId] = toId
@@ -176,23 +177,13 @@ object FormationService {
             it[rowSizes] = original[Formations.rowSizes]
         } get Formations.id
 
-        // Get the concert roster to filter placements
+        // Only copy placements for chorists on the concert roster
         val concertChoristIds = ConcertChorists.selectAll()
             .where { ConcertChorists.concertId eq concertId }
             .map { it[ConcertChorists.choristId] }
             .toSet()
 
-        Placements.selectAll()
-            .where { Placements.formationId eq formationId }
-            .filter { it[Placements.choristId] in concertChoristIds }
-            .forEach { p ->
-                Placements.insert {
-                    it[Placements.formationId] = newId
-                    it[choristId] = p[Placements.choristId]
-                    it[gridX] = p[Placements.gridX]
-                    it[gridY] = p[Placements.gridY]
-                }
-            }
+        copyPlacements(formationId, newId, concertChoristIds)
 
         FormationDTO(newId, original[Formations.name], original[Formations.rowSizes])
     }

@@ -39,8 +39,7 @@ object UserService {
 
     fun createForChorist(choristId: UUID, choirId: UUID, firstName: String, lastName: String): Pair<String, String> = transaction {
         val username = generateUsername(firstName, lastName, choirId)
-        val token = newToken()
-        val expiresAt = Instant.now().plusSeconds(72 * 3600).toString()
+        val (token, expiresAt) = newSetupToken()
         Users.insert {
             it[Users.choirId] = choirId
             it[Users.choristId] = choristId
@@ -53,8 +52,7 @@ object UserService {
     }
 
     fun createNonChorist(choirId: UUID, username: String, role: String = "user"): String = transaction {
-        val token = newToken()
-        val expiresAt = Instant.now().plusSeconds(72 * 3600).toString()
+        val (token, expiresAt) = newSetupToken()
         Users.insert {
             it[Users.choirId] = choirId
             it[Users.username] = username
@@ -93,8 +91,7 @@ object UserService {
         val exists = Users.selectAll()
             .where { (Users.id eq userId) and (Users.choirId eq choirId) }
             .singleOrNull() ?: return@transaction null
-        val token = newToken()
-        val expiresAt = Instant.now().plusSeconds(72 * 3600).toString()
+        val (token, expiresAt) = newSetupToken()
         Users.update({ Users.id eq exists[Users.id] }) {
             it[Users.passwordHash] = null
             it[Users.setupToken] = token
@@ -171,4 +168,9 @@ object UserService {
     )
 
     private fun newToken(): String = UUID.randomUUID().toString().replace("-", "")
+    private fun newSetupToken(): Pair<String, String> {
+        val token = newToken()
+        val expiresAt = Instant.now().plusSeconds(72 * 3600).toString()
+        return Pair(token, expiresAt)
+    }
 }
