@@ -7,6 +7,7 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.slf4j.LoggerFactory
 import routes.*
 import service.StorageService
 
@@ -37,8 +38,9 @@ fun Application.module() {
             region = config.property("storage.region").getString(),
             bucket = config.property("storage.bucket").getString(),
         )
-    } catch (_: Exception) {
-        null // Storage not configured — sheet music upload disabled
+    } catch (e: Exception) {
+        LoggerFactory.getLogger("Application").info("Storage not configured, file uploads disabled: {}", e.message)
+        null
     }
 
     routing {

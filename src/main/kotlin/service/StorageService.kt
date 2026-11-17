@@ -9,6 +9,7 @@ import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
+import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.net.URI
 import java.nio.file.Files
@@ -60,10 +61,8 @@ class StorageService(
     }
 
     companion object {
-        /**
-         * Compress a PDF using Ghostscript. Returns the compressed bytes,
-         * or the original bytes if Ghostscript is not available or compression fails.
-         */
+        private val log = LoggerFactory.getLogger(StorageService::class.java)
+
         fun compressPdf(input: ByteArray): ByteArray {
             val inputFile = Files.createTempFile("gs-input-", ".pdf")
             val outputFile = Files.createTempFile("gs-output-", ".pdf")
@@ -90,8 +89,8 @@ class StorageService(
                 val compressed = Files.readAllBytes(outputFile)
                 // Only use compressed version if it's actually smaller
                 return if (compressed.size < input.size) compressed else input
-            } catch (_: Exception) {
-                // Ghostscript not installed or other error — return original
+            } catch (e: Exception) {
+                log.warn("PDF compression failed, returning original: {}", e.message)
                 return input
             } finally {
                 Files.deleteIfExists(inputFile)

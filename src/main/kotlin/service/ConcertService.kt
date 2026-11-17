@@ -42,19 +42,17 @@ object ConcertService {
         val songIds = ConcertSongs.selectAll()
             .where { ConcertSongs.concertId eq id }
             .map { it[ConcertSongs.id] }
-
-        songIds.forEach { sId ->
-            HiddenChorists.deleteWhere { HiddenChorists.concertSongId eq sId }
-            SongFormations.deleteWhere { SongFormations.concertSongId eq sId }
+        if (songIds.isNotEmpty()) {
+            HiddenChorists.deleteWhere { HiddenChorists.concertSongId inList songIds }
+            SongFormations.deleteWhere { SongFormations.concertSongId inList songIds }
         }
         ConcertSongs.deleteWhere { ConcertSongs.concertId eq id }
 
         val formationIds = Formations.selectAll()
             .where { Formations.concertId eq id }
             .map { it[Formations.id] }
-
-        formationIds.forEach { fId ->
-            Placements.deleteWhere { formationId eq fId }
+        if (formationIds.isNotEmpty()) {
+            Placements.deleteWhere { formationId inList formationIds }
         }
         Formations.deleteWhere { concertId eq id }
         ConcertChorists.deleteWhere { concertId eq id }
@@ -84,59 +82,75 @@ object ConcertService {
             it[imageUrl] = original[Concerts.imageUrl]
         } get Concerts.id
 
+        duplicateChorists(id, newConcertId)
+        val formationIdMap = duplicateFormations(id, newConcertId)
+        val concertSongIdMap = duplicateConcertSongs(id, newConcertId)
+        duplicateSongFormationsAndHidden(concertSongIdMap, formationIdMap)
+
+        ConcertDTO(newConcertId, newName, original[Concerts.date], original[Concerts.imageUrl])
+    }
+
+    private fun duplicateChorists(fromConcertId: UUID, toConcertId: UUID) {
         ConcertChorists.selectAll()
-            .where { ConcertChorists.concertId eq id }
+            .where { ConcertChorists.concertId eq fromConcertId }
             .forEach { cc ->
                 ConcertChorists.insert {
-                    it[ConcertChorists.concertId] = newConcertId
-                    it[ConcertChorists.choristId] = cc[ConcertChorists.choristId]
+                    it[concertId] = toConcertId
+                    it[choristId] = cc[ConcertChorists.choristId]
                 }
             }
+    }
 
-        val formationIdMap = mutableMapOf<UUID, UUID>()
+    private fun duplicateFormations(fromConcertId: UUID, toConcertId: UUID): Map<UUID, UUID> {
+        val idMap = mutableMapOf<UUID, UUID>()
         Formations.selectAll()
-            .where { Formations.concertId eq id }
+            .where { Formations.concertId eq fromConcertId }
             .forEach { f ->
-                val oldFormationId = f[Formations.id]
-                val newFormationId = Formations.insert {
-                    it[Formations.concertId] = newConcertId
-                    it[Formations.name] = f[Formations.name]
+                val oldId = f[Formations.id]
+                val newId = Formations.insert {
+                    it[concertId] = toConcertId
+                    it[name] = f[Formations.name]
                 } get Formations.id
-                formationIdMap[oldFormationId] = newFormationId
+                idMap[oldId] = newId
 
                 Placements.selectAll()
-                    .where { Placements.formationId eq oldFormationId }
+                    .where { Placements.formationId eq oldId }
                     .forEach { p ->
                         Placements.insert {
-                            it[Placements.formationId] = newFormationId
-                            it[Placements.choristId] = p[Placements.choristId]
-                            it[Placements.gridX] = p[Placements.gridX]
-                            it[Placements.gridY] = p[Placements.gridY]
+                            it[formationId] = newId
+                            it[choristId] = p[Placements.choristId]
+                            it[gridX] = p[Placements.gridX]
+                            it[gridY] = p[Placements.gridY]
                         }
                     }
             }
+        return idMap
+    }
 
-        val concertSongIdMap = mutableMapOf<UUID, UUID>()
+    private fun duplicateConcertSongs(fromConcertId: UUID, toConcertId: UUID): Map<UUID, UUID> {
+        val idMap = mutableMapOf<UUID, UUID>()
         ConcertSongs.selectAll()
-            .where { ConcertSongs.concertId eq id }
+            .where { ConcertSongs.concertId eq fromConcertId }
             .forEach { cs ->
-                val oldConcertSongId = cs[ConcertSongs.id]
-                val newConcertSongId = ConcertSongs.insert {
-                    it[ConcertSongs.concertId] = newConcertId
-                    it[ConcertSongs.songId] = cs[ConcertSongs.songId]
-                    it[ConcertSongs.sortOrder] = cs[ConcertSongs.sortOrder]
+                val newId = ConcertSongs.insert {
+                    it[concertId] = toConcertId
+                    it[songId] = cs[ConcertSongs.songId]
+                    it[sortOrder] = cs[ConcertSongs.sortOrder]
                 } get ConcertSongs.id
-                concertSongIdMap[oldConcertSongId] = newConcertSongId
+                idMap[cs[ConcertSongs.id]] = newId
             }
+        return idMap
+    }
 
+    private fun duplicateSongFormationsAndHidden(concertSongIdMap: Map<UUID, UUID>, formationIdMap: Map<UUID, UUID>) {
         concertSongIdMap.forEach { (oldCsId, newCsId) ->
             SongFormations.selectAll()
                 .where { SongFormations.concertSongId eq oldCsId }
                 .forEach { sf ->
                     SongFormations.insert {
-                        it[SongFormations.concertSongId] = newCsId
-                        it[SongFormations.formationId] = formationIdMap[sf[SongFormations.formationId]]!!
-                        it[SongFormations.sortOrder] = sf[SongFormations.sortOrder]
+                        it[concertSongId] = newCsId
+                        it[formationId] = formationIdMap[sf[SongFormations.formationId]]!!
+                        it[sortOrder] = sf[SongFormations.sortOrder]
                     }
                 }
 
@@ -144,12 +158,10 @@ object ConcertService {
                 .where { HiddenChorists.concertSongId eq oldCsId }
                 .forEach { hc ->
                     HiddenChorists.insert {
-                        it[HiddenChorists.concertSongId] = newCsId
-                        it[HiddenChorists.choristId] = hc[HiddenChorists.choristId]
+                        it[concertSongId] = newCsId
+                        it[choristId] = hc[HiddenChorists.choristId]
                     }
                 }
         }
-
-        ConcertDTO(newConcertId, newName, original[Concerts.date], original[Concerts.imageUrl])
     }
 }
