@@ -17,6 +17,7 @@ object GroupPermissions : Table("group_permissions") {
     val canEdit   = bool("can_edit").default(false)
     val canDelete = bool("can_delete").default(false)
     override val primaryKey = PrimaryKey(id)
+    init { uniqueIndex(groupId, feature) }
 }
 
 object UserGroups : Table("user_groups") {
@@ -24,4 +25,5 @@ object UserGroups : Table("user_groups") {
     val userId  = uuid("user_id").references(Users.id)
     val groupId = uuid("group_id").references(PermissionGroups.id)
     override val primaryKey = PrimaryKey(id)
+    init { uniqueIndex(userId, groupId) }
 }

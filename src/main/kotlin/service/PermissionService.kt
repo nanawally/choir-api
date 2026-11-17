@@ -156,37 +156,22 @@ object PermissionService {
     }
 
     fun setPermission(groupId: UUID, feature: String, canView: Boolean, canEdit: Boolean, canDelete: Boolean): Boolean = transaction {
-        val exists = GroupPermissions.selectAll()
-            .where { (GroupPermissions.groupId eq groupId) and (GroupPermissions.feature eq feature) }
-            .count() > 0
-        if (exists) {
-            GroupPermissions.update({ (GroupPermissions.groupId eq groupId) and (GroupPermissions.feature eq feature) }) {
-                it[GroupPermissions.canView]   = canView
-                it[GroupPermissions.canEdit]   = canEdit
-                it[GroupPermissions.canDelete] = canDelete
-            }
-        } else {
-            GroupPermissions.insert {
-                it[GroupPermissions.groupId]   = groupId
-                it[GroupPermissions.feature]   = feature
-                it[GroupPermissions.canView]   = canView
-                it[GroupPermissions.canEdit]   = canEdit
-                it[GroupPermissions.canDelete] = canDelete
-            }
+        GroupPermissions.upsert(GroupPermissions.groupId, GroupPermissions.feature) {
+            it[GroupPermissions.groupId]   = groupId
+            it[GroupPermissions.feature]   = feature
+            it[GroupPermissions.canView]   = canView
+            it[GroupPermissions.canEdit]   = canEdit
+            it[GroupPermissions.canDelete] = canDelete
         }
         true
     }
 
     fun addMember(groupId: UUID, userId: UUID): Boolean = transaction {
-        val already = UserGroups.selectAll()
-            .where { (UserGroups.groupId eq groupId) and (UserGroups.userId eq userId) }
-            .count() > 0
-        if (already) return@transaction false
-        UserGroups.insert {
+        val inserted = UserGroups.insertIgnore {
             it[UserGroups.groupId] = groupId
             it[UserGroups.userId]  = userId
         }
-        true
+        inserted.insertedCount > 0
     }
 
     fun removeMember(groupId: UUID, userId: UUID): Boolean = transaction {
