@@ -28,6 +28,15 @@ object ChoristService {
             }
     }
 
+    fun getByIds(ids: List<UUID>, choirId: UUID): Map<UUID, ChoristDTO> = transaction {
+        Chorists.selectAll()
+            .where { (Chorists.id inList ids) and (Chorists.choirId eq choirId) }
+            .associate {
+                it[Chorists.id] to ChoristDTO(it[Chorists.id], it[Chorists.firstName], it[Chorists.lastName],
+                    it[Chorists.isSectionLeader], it[Chorists.isArchived], it[Chorists.isDeleted], it[Chorists.notes])
+            }
+    }
+
     fun list(choirId: UUID, includeArchived: Boolean = false): List<ChoristDTO> = transaction {
         Chorists.selectAll()
             .where { (Chorists.choirId eq choirId) and (Chorists.isDeleted eq false) }

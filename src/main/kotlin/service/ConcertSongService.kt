@@ -17,14 +17,12 @@ data class ConcertSongDTO(val id: UUID, val songId: UUID, val name: String, val 
 object ConcertSongService {
 
     fun listByConcert(concertId: UUID): List<ConcertSongDTO> = transaction {
-        ConcertSongs.selectAll()
+        (ConcertSongs innerJoin Songs)
+            .selectAll()
             .where { ConcertSongs.concertId eq concertId }
             .orderBy(ConcertSongs.sortOrder)
             .map {
-                val song = Songs.selectAll()
-                    .where { Songs.id eq it[ConcertSongs.songId] }
-                    .first()
-                ConcertSongDTO(it[ConcertSongs.id], it[ConcertSongs.songId], song[Songs.name], it[ConcertSongs.sortOrder])
+                ConcertSongDTO(it[ConcertSongs.id], it[ConcertSongs.songId], it[Songs.name], it[ConcertSongs.sortOrder])
             }
     }
 

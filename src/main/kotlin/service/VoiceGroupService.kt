@@ -16,16 +16,23 @@ data class VoiceAssignmentDTO(val choristId: UUID, val voicePartId: UUID)
 object VoiceGroupService {
 
     fun list(choirId: UUID): List<VoiceGroupDTO> = transaction {
-        VoiceGroups.selectAll()
+        val groups = VoiceGroups.selectAll()
             .where { VoiceGroups.choirId eq choirId }
-            .map { row ->
-                val groupId = row[VoiceGroups.id]
-                val parts = VoiceParts.selectAll()
-                    .where { VoiceParts.voiceGroupId eq groupId }
-                    .orderBy(VoiceParts.sortOrder)
-                    .map { VoicePartDTO(it[VoiceParts.id], it[VoiceParts.name], it[VoiceParts.color], it[VoiceParts.shape]) }
-                VoiceGroupDTO(groupId, row[VoiceGroups.name], row[VoiceGroups.isStandard], parts)
-            }
+            .toList()
+        val groupIds = groups.map { it[VoiceGroups.id] }
+        val partsByGroup = if (groupIds.isNotEmpty()) {
+            VoiceParts.selectAll()
+                .where { VoiceParts.voiceGroupId inList groupIds }
+                .orderBy(VoiceParts.sortOrder)
+                .groupBy(
+                    { it[VoiceParts.voiceGroupId] },
+                    { VoicePartDTO(it[VoiceParts.id], it[VoiceParts.name], it[VoiceParts.color], it[VoiceParts.shape]) }
+                )
+        } else emptyMap()
+        groups.map { row ->
+            val groupId = row[VoiceGroups.id]
+            VoiceGroupDTO(groupId, row[VoiceGroups.name], row[VoiceGroups.isStandard], partsByGroup[groupId] ?: emptyList())
+        }
     }
 
     fun create(choirId: UUID, name: String, isStandard: Boolean = false): VoiceGroupDTO = transaction {

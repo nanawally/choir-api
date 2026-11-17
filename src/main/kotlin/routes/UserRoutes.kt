@@ -37,9 +37,8 @@ fun Route.userRoutes() {
             val users = UserService.list(choirId)
             val choristIds = users.mapNotNull { it.choristId }
             val choristNames = if (choristIds.isNotEmpty()) {
-                choristIds.mapNotNull { cId ->
-                    ChoristService.getById(cId, choirId)?.let { cId to "${it.firstName} ${it.lastName}" }
-                }.toMap()
+                ChoristService.getByIds(choristIds, choirId)
+                    .mapValues { (_, c) -> "${c.firstName} ${c.lastName}" }
             } else emptyMap()
             call.respond(users.map {
                 UserResponse(it.id.toString(), it.username, it.choristId?.toString(),
