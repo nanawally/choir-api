@@ -58,6 +58,20 @@ fun Route.formationRoutes() {
         get {
             if (!requirePermission("concerts", "view")) return@get
             val concertId = UUID.fromString(call.parameters["concertId"])
+            val include = call.request.queryParameters["include"]
+            if (include == "placements") {
+                val details = FormationService.listByConcertWithPlacements(concertId).map {
+                    FormationDetailResponse(
+                        it.id.toString(),
+                        it.name,
+                        it.placements.map { p -> PlacementBody(p.choristId.toString(), p.gridX, p.gridY) },
+                        it.rowSizes,
+                        it.ghostChorists.map { g -> GhostChoristBody(g.id.toString(), g.firstName, g.lastName, g.isArchived, g.isDeleted) },
+                    )
+                }
+                call.respond(details)
+                return@get
+            }
             val formations = FormationService.listByConcert(concertId).map {
                 FormationResponse(it.id.toString(), it.name, it.rowSizes)
             }

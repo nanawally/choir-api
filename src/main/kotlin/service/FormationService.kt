@@ -73,6 +73,39 @@ object FormationService {
         )
     }
 
+    fun listByConcertWithPlacements(concertId: UUID): List<FormationWithPlacements> = transaction {
+        val formations = Formations.selectAll()
+            .where { Formations.concertId eq concertId }
+            .orderBy(Formations.name)
+            .toList()
+
+        if (formations.isEmpty()) return@transaction emptyList()
+
+        val formationIds = formations.map { it[Formations.id] }
+
+        val placementsByFormation = Placements.selectAll()
+            .where { Placements.formationId inList formationIds }
+            .groupBy { it[Placements.formationId] }
+            .mapValues { (_, rows) ->
+                rows.map { PlacementDTO(it[Placements.choristId], it[Placements.gridX], it[Placements.gridY]) }
+            }
+
+        val allPlacedChoristIds = placementsByFormation.values.flatten().map { it.choristId }.toSet()
+        val ghostChoristMap = if (allPlacedChoristIds.isNotEmpty()) {
+            Chorists.selectAll()
+                .where { (Chorists.id inList allPlacedChoristIds) and ((Chorists.isArchived eq true) or (Chorists.isDeleted eq true)) }
+                .map { GhostChoristDTO(it[Chorists.id], it[Chorists.firstName], it[Chorists.lastName], it[Chorists.isArchived], it[Chorists.isDeleted]) }
+                .associateBy { it.id }
+        } else emptyMap()
+
+        formations.map { row ->
+            val fId = row[Formations.id]
+            val placements = placementsByFormation[fId] ?: emptyList()
+            val ghosts = placements.mapNotNull { ghostChoristMap[it.choristId] }.distinctBy { it.id }
+            FormationWithPlacements(fId, row[Formations.name], placements, row[Formations.rowSizes], ghosts)
+        }
+    }
+
     fun create(concertId: UUID, name: String): FormationDTO = transaction {
         val id = Formations.insert {
             it[Formations.concertId] = concertId
